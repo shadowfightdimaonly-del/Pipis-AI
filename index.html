@@ -46,6 +46,14 @@ header{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-a
   display:grid;place-items:center;cursor:pointer;color:var(--ink)}
 .hicon svg{width:20px;height:20px}
 
+/* Селектор моделей в шапке */
+.model-wrap{position:relative}
+.model-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none;flex-direction:column;gap:4px;z-index:50;min-width:180px}
+.model-menu.open{display:flex}
+.model-option{background:none;border:0;color:var(--ink);padding:8px 12px;text-align:left;border-radius:8px;font-size:13px;cursor:pointer}
+.model-option:hover,.model-option.active{background:rgba(var(--rgb),.16);color:var(--light)}
+
 /* ---------- Чат ---------- */
 #chat{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   padding:16px 14px;display:flex;flex-direction:column;gap:14px}
@@ -79,6 +87,9 @@ header{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-a
 .typing span{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:pulse 1.2s infinite ease-in-out}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes pulse{0%,80%,100%{opacity:.25;transform:scale(.75)}40%{opacity:1;transform:scale(1)}}
+
+.ai-image{max-width:100%;border-radius:12px;margin:8px 0;display:block;cursor:pointer}
+.download-file{display:inline-block;margin-top:6px;padding:6px 12px;background:rgba(var(--rgb),.15);border:1px solid var(--line);border-radius:8px;color:var(--light);text-decoration:none;font-size:13px}
 
 .empty{margin:auto;text-align:center;padding:24px 8px;animation:in .4s ease-out}
 .empty h2{font-size:28px;margin:0 0 6px;background:linear-gradient(90deg,var(--light),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -135,8 +146,9 @@ body.drawer-open #drawer{transform:none;visibility:visible}
 .chat-del{flex:none;width:40px;height:40px;background:none;border:0;color:var(--mute);display:grid;place-items:center;cursor:pointer;border-radius:10px}
 .chat-del:active{background:rgba(248,113,113,.15);color:#f87171}
 .chat-del svg{width:18px;height:18px}
+.pe-profile{padding:12px;border:1px solid var(--line);border-radius:15px;background:rgba(var(--rgb),.06);margin:4px 0}
 
-/* ---------- Настройки ---------- */
+/* ---------- Настройки и Память ---------- */
 dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:20px;width:min(420px,92vw);max-height:90vh;padding:20px}
 dialog::backdrop{background:rgba(0,0,0,.65)}
 dialog h3{margin:0 0 4px;font-size:20px}
@@ -160,13 +172,17 @@ dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;po
 dialog .save{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:0;border-radius:12px;padding:10px 18px;font-weight:600;cursor:pointer}
 dialog .cancel{background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 16px;cursor:pointer}
 
+/* Интерфейс расширенной памяти в настройках */
+.memory-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:150px;overflow-y:auto}
+.memory{display:flex;align-items:center;justify-content:space-between;background:rgba(var(--rgb),.08);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+.memory button.danger{background:none;border:0;color:#f87171;font-size:16px;cursor:pointer;padding:0 4px}
+
 @media (max-width:400px){
   header{gap:6px;padding-left:10px;padding-right:10px}
   .brand{font-size:18px}
   .btn{padding:8px 10px;font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-
 </style>
 </head>
 <body>
@@ -175,7 +191,14 @@ dialog .cancel{background:transparent;border:1px solid var(--line);border-radius
     <button id="menu" class="hicon" type="button" aria-label="Открыть список чатов">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
-    <h1 class="brand">Pipis AI <span style="font-size:11px;opacity:.6;-webkit-text-fill-color:initial;color:#7fa89a">b3</span></h1>
+    <h1 class="brand">Pipis AI <span style="font-size:11px;opacity:.6;-webkit-text-fill-color:initial;color:#7fa89a">v3</span></h1>
+    
+    <!-- Селектор моделей в шапке -->
+    <div class="model-wrap" id="peModelWrap">
+      <button id="peModel" class="btn" type="button">Модель</button>
+      <div id="peModels" class="model-menu"></div>
+    </div>
+
     <button id="newChat" class="btn" type="button">Новый чат</button>
     <button id="settings" class="hicon" type="button" aria-label="Настройки">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -191,12 +214,9 @@ dialog .cancel{background:transparent;border:1px solid var(--line);border-radius
         <button type="button" id="attach" class="icon" aria-label="Фото из галереи или камера">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
         </button>
-        <input type="file" id="file" accept="image/*" multiple hidden>
-        <button type="button" id="attachDoc" class="icon" aria-label="Прикрепить документ или медиафайл">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </button>
-        <input type="file" id="fileDoc" accept="video/*,audio/*,application/pdf,.pdf,.txt,.md,.csv,.json" multiple hidden>
-        <textarea id="input" rows="1" placeholder="Спроси что-нибудь…" aria-label="Сообщение"></textarea>
+        <input type="file" id="file" accept="image/*,.txt,.md,.csv,.json,.js,.ts,.py,.java,.kt,.dart,.html,.css,.xml,.yaml,.yml,.sql,.sh,.log,.c,.cpp,.h,.hpp,.go,.rs,.php,.rb,.swift,.pdf" multiple hidden>
+        
+        <textarea id="input" rows="1" placeholder="Спроси что-нибудь или /img [запрос]…" aria-label="Сообщение"></textarea>
         <button id="send" class="icon" type="submit" aria-label="Отправить" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
         </button>
@@ -214,6 +234,10 @@ dialog .cancel{background:transparent;border:1px solid var(--line);border-radius
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
+  <div class="pe-profile">
+    <b>👤 Pipis-AFC</b>
+    <div style="font-size:12px;color:var(--mute)">Локальный режим · VIP</div>
+  </div>
   <button id="createChat" class="create" type="button">+ Создать чат</button>
   <div id="chatList" class="chat-list"></div>
 </aside>
@@ -229,23 +253,29 @@ dialog .cancel{background:transparent;border:1px solid var(--line);border-radius
 
     <label for="base">Custom API Proxy URL (опционально)</label>
     <input id="base" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://generativelanguage.googleapis.com">
-    <p class="hint">Все запросы к Gemini пойдут через этот адрес. API-ключ тоже проходит через прокси, поэтому используй только свой.</p>
 
     <label for="about">Обо мне / Память Pipis AI</label>
-    <textarea id="about" rows="4" maxlength="2000" placeholder="Например: Меня зовут Димыч, я замдиректора Pipis-AFC, люблю короткие и чёткие ответы без душноты"></textarea>
-    <p class="hint">Подмешивается в каждый запрос, в любом чате.</p>
+    <textarea id="about" rows="3" maxlength="2000" placeholder="Общая память"></textarea>
 
-    <label>Тема оформления</label>
+    <!-- Блок динамических фактов памяти -->
+    <label>Быстрые факты памяти</label>
+    <div style="display:flex;gap:6px">
+      <input id="peMemInput" placeholder="Добавить факт…" style="font-size:14px;padding:6px 10px">
+      <button type="button" class="save" id="peMemAdd" style="padding:6px 14px">＋</button>
+    </div>
+    <div id="peMemList" class="memory-list"></div>
+
+    <label style="margin-top:16px">Тема оформления</label>
     <div class="themes" role="group" aria-label="Тема оформления">
-      <button type="button" class="theme" data-theme="mint" aria-pressed="false"><span class="sw sw-mint"></span>Cyber Mint</button>
-      <button type="button" class="theme" data-theme="oled" aria-pressed="false"><span class="sw sw-oled"></span>OLED Black</button>
-      <button type="button" class="theme" data-theme="purple" aria-pressed="false"><span class="sw sw-purple"></span>Neon Purple</button>
+      <button type="button" class="theme" data-theme="mint" aria-pressed="false"><span class="sw sw-mint"></span>Mint</button>
+      <button type="button" class="theme" data-theme="oled" aria-pressed="false"><span class="sw sw-oled"></span>OLED</button>
+      <button type="button" class="theme" data-theme="purple" aria-pressed="false"><span class="sw sw-purple"></span>Purple</button>
     </div>
 
     <details>
       <summary>Дополнительно</summary>
       <label for="sys">Характер Pipis AI (системная инструкция)</label>
-      <textarea id="sys" rows="5"></textarea>
+      <textarea id="sys" rows="4"></textarea>
       <label for="max">Макс. длина ответа (токены)</label>
       <input id="max" type="number" min="100" step="100" inputmode="numeric">
     </details>
@@ -258,35 +288,16 @@ dialog .cancel{background:transparent;border:1px solid var(--line);border-radius
 </dialog>
 
 <script>
-(function(){
-  function banner(msg){
-    var d = document.getElementById('bootErr');
-    if(!d){ d = document.createElement('div'); d.id = 'bootErr';
-      d.style.cssText = 'position:fixed;left:12px;right:12px;top:84px;z-index:99;background:#3b0d0d;color:#fecaca;border:1px solid #f87171;border-radius:14px;padding:12px 14px;font:14px/1.4 system-ui,sans-serif;white-space:pre-wrap';
-      document.body.appendChild(d); }
-    d.textContent += msg + '\n';
-  }
-  window.addEventListener('error', function(e){
-    if (e.target && e.target.tagName === 'SCRIPT') banner('Не загрузился файл ' + (e.target.getAttribute('src') || 'скрипта') + '. Он должен лежать рядом с index.html.');
-    else banner('Ошибка JS: ' + e.message + (e.lineno ? ' (строка ' + e.lineno + ')' : ''));
-  }, true);
-  setTimeout(function(){
-    if (!window.PIPIS_READY) banner('script.js не запустился. Проверь, что он есть в репозитории рядом с index.html и что сборка свежая.');
-  }, 1500);
-})();
-</script>
-<script>
 'use strict';
-window.PIPIS_READY = true;   // сигнал для index.html: скрипт дошёл до этой строки
+window.PIPIS_READY = true;
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), input = $('input'), send = $('send');
 
-// ---------- Конфиг ----------
-const MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite']; // порядок перебора (fallback)
+const MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
 const DEFAULT_MAX = 1500;
-const DEFAULT_SYS = 'Ты — Pipis AI, умный, быстрый и дерзкий ИИ-ассистент, созданный компанией Pipis-AFC. Отвечай чётко, по делу и с лёгким харизматичным юмором, без лишней «воды».';
-const FREE_STYLE = 'Ты — Pipis AI. Тебе разрешено выражаться абсолютно свободно, использовать крепкие выражения, острый сленг и нецензурную лексику, если того требует контекст или просит пользователь. Будь максимально дерзким и без фильтров!';
-const NO_LATEX = 'НИКОГДА не используй LaTeX и знаки доллара ($) для оформления математических формул и примеров. Пиши все примеры, цифры и действия простым понятным текстом (например: 4 + 8 * 5 = 44).';
+const DEFAULT_SYS = 'Ты — Pipis AI, умный, быстрый и дерзкий ИИ-ассистент, созданный компанией Pipis-AFC. Отвечай чётко, по делу и с лёгким харизматичным юмором.';
+const FREE_STYLE = 'Ты — Pipis AI. Тебе разрешено выражаться абсолютно свободно, использовать сленг, острый юмор и нецензурную лексику, если того требует контекст или просит пользователь.';
+const NO_LATEX = 'НИКОГДА не используй LaTeX и знаки доллара ($) для формул. Пиши всё простым текстом.';
 const safetySettings = [
   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
   { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -294,7 +305,7 @@ const safetySettings = [
   { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
 ];
 const THEMES = { mint: '#0b1312', oled: '#000000', purple: '#0e0a1a' };
-const CHATS_KEY = 'pipis_chats_v1';
+const CHATS_KEY = 'pipis_chats_v3';
 const DEFAULT_BASE = 'https://generativelanguage.googleapis.com';
 
 const store = {
@@ -302,34 +313,72 @@ const store = {
   set: (k, v) => { try { localStorage.setItem(k, v) } catch {} }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-// ---------- Состояние и хранение чатов ----------
-// chat = { id, title, ts, messages: [{ role:'user'|'model', text, files:[{name}], inline:[…только в памяти] }] }
 let chats = [];
 let activeId = null;
-let pending = [];   // вложения, ожидающие отправки {name, mime, data}
+let pending = [];
 let busy = false;
+let memories = [];
+try { memories = JSON.parse(store.get('pipis_memories', '[]')) || [] } catch {}
+const saveMem = () => store.set('pipis_memories', JSON.stringify(memories));
+
 const active = () => chats.find(c => c.id === activeId);
 
+// Управление селектором моделей в шапке
+const initModelSelector = () => {
+  const btn = $('peModel'), menu = $('peModels');
+  const draw = () => {
+    const cur = store.get('pipis_model', MODELS[0]);
+    btn.textContent = cur;
+    menu.innerHTML = MODELS.map(m => `<button class="model-option ${m===cur?'active':''}" data-m="${m}" type="button">${m}</button>`).join('');
+  };
+  btn.onclick = e => { e.stopPropagation(); menu.classList.toggle('open'); };
+  menu.onclick = e => {
+    const b = e.target.closest('[data-m]');
+    if (!b) return;
+    store.set('pipis_model', b.dataset.m);
+    draw();
+    menu.classList.remove('open');
+  };
+  document.addEventListener('click', () => menu.classList.remove('open'));
+  draw();
+};
+
+// Управление памятью в диалоге настроек
+const initMemoryUI = () => {
+  const list = $('peMemList');
+  if (!list) return;
+  const draw = () => {
+    list.innerHTML = memories.map((m, i) => `<div class="memory"><span>${esc(m)}</span><button type="button" class="danger" data-memory="${i}">×</button></div>`).join('');
+  };
+  $('peMemAdd').onclick = () => {
+    const i = $('peMemInput'), v = i.value.trim();
+    if (v) { memories.push(v); saveMem(); i.value = ''; draw(); }
+  };
+  list.onclick = e => {
+    const b = e.target.closest('[data-memory]');
+    if (!b) return;
+    memories.splice(+b.dataset.memory, 1);
+    saveMem();
+    draw();
+  };
+  draw();
+};
+
 function newChat(){
-  const empty = chats.find(c => !c.messages.length);   // пустой чат не плодим
+  const empty = chats.find(c => !c.messages.length);
   if (empty) { activeId = empty.id; return empty }
   const c = { id: uid(), title: 'Новый чат', ts: Date.now(), messages: [] };
   chats.push(c); activeId = c.id; return c;
 }
 function save(){
-  // файлы (base64) в localStorage не кладём — только текст и имена файлов
   let list = chats.filter(c => c.messages.length).map(c => ({
     id: c.id, title: c.title, ts: c.ts,
     messages: c.messages.map(m => ({ role: m.role, text: m.text, files: (m.files || []).map(f => ({ name: f.name })) }))
   }));
-  const data = () => JSON.stringify({ activeId: active()?.messages.length ? activeId : null, chats: list });
-  for (;;) {
-    try { localStorage.setItem(CHATS_KEY, data()); return }
-    catch { if (list.length <= 1) return; list.sort((a, b) => a.ts - b.ts); list.shift() }   // нет места — выкидываем самый старый
-  }
+  try { store.set(CHATS_KEY, JSON.stringify({ activeId: active()?.messages.length ? activeId : null, chats: list })); } catch {}
 }
 function load(){
   try {
@@ -344,30 +393,31 @@ function load(){
     if (last) activeId = last.id; else newChat();
   }
 }
-// весь массив переписки с ролями user/model — именно он уходит в Gemini при каждом сообщении
+
 function toContents(msgs){
   return msgs.map(m => {
     const parts = [];
     if (m.inline?.length) parts.push(...m.inline);
-    else if (m.files?.length) parts.push({ text: '[Пользователь прикрепил файлы: ' + m.files.map(f => f.name).join(', ') + ' — содержимое недоступно]' });
+    if (m.fileTexts?.length) {
+      for (const f of m.fileTexts) parts.push({ text: '\n\n--- Файл: ' + f.name + ' ---\n' + f.text + '\n--- Конец файла ---' });
+    }
+    if (!m.inline?.length && m.files?.length && !m.fileTexts?.length) {
+      parts.push({ text: '[Пользователь прикрепил файлы: ' + m.files.map(f => f.name).join(', ') + ']' });
+    }
     if (m.text) parts.push({ text: m.text });
     if (!parts.length) parts.push({ text: ' ' });
     return { role: m.role, parts };
   });
 }
 
-// ---------- Markdown ----------
 function unlatex(s){
   const fix = t => t.replace(/\\times/g,'×').replace(/\\cdot/g,'·').replace(/\\div/g,'÷').replace(/\\pm/g,'±')
     .replace(/\\leq?/g,'≤').replace(/\\geq?/g,'≥').replace(/\\neq/g,'≠').replace(/\\approx/g,'≈')
     .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'($1)/($2)').replace(/\\sqrt\{([^{}]*)\}/g,'√($1)')
     .replace(/\\text\{([^{}]*)\}/g,'$1').replace(/\^\{([^{}]*)\}/g,'^$1').replace(/[{}]/g,'').replace(/\\,/g,' ').trim();
-  return s.replace(/\$\$([\s\S]+?)\$\$/g,(_,m)=>fix(m))
-    .replace(/\\\[([\s\S]+?)\\\]/g,(_,m)=>fix(m))
-    .replace(/\\\(([\s\S]+?)\\\)/g,(_,m)=>fix(m))
-    .replace(/\$([^$\n]+)\$/g,(a,m)=>/[\\^_{}]/.test(m)?fix(m):a);
+  return s.replace(/\$\$([\s\S]+?)\$\$/g,(_,m)=>fix(m)).replace(/\\\[([\s\S]+?)\\\]/g,(_,m)=>fix(m)).replace(/\\\(([\s\S]+?)\\\)/g,(_,m)=>fix(m));
 }
-function inline(s){ // вход уже экранирован
+function inline(s){
   return s
     .replace(/`([^`\n]+)`/g, '<code>$1</code>')
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
@@ -375,8 +425,13 @@ function inline(s){ // вход уже экранирован
     .replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
 }
 function md(src){
+  let text = String(src).replace(/\[\[PIPIS_FILE:([^\vert{}\]]+)\Vert{}([^\]]+)\]\]([\s\S]*?)\[\[\/PIPIS_FILE\]\]/g, (_, name, mime, data) => {
+    const blob = new Blob([data], {type: mime||'text/plain'});
+    const url = URL.createObjectURL(blob);
+    return `<div><a class="download-file" download="${esc(name)}" href="${url}">📄 Скачать ${esc(name)}</a></div>`;
+  });
   const blocks = [];
-  let text = src.replace(/```([\w+#.-]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+  text = text.replace(/```([\w+#.-]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
     blocks.push({ lang, code: code.replace(/\n$/, '') });
     return '\u0001' + (blocks.length - 1) + '\u0001';
   });
@@ -392,11 +447,9 @@ function md(src){
       html += `<div class="code"><div class="code-head"><span>${esc(b.lang || 'code')}</span><button class="copy" type="button">Копировать</button></div><pre><code>${esc(b.code)}</code></pre></div>`;
       continue;
     }
-    if (!ln.trim()) { close(); continue }
-    if ((m = ln.match(/^#{1,6}\s+(.*)$/))) { close(); html += `<h3>${inline(m[1])}</h3>`; continue }
-    if ((m = ln.match(/^\s*[-*]\s+(.*)$/))) { if (list !== 'ul') { close(); html += '<ul>'; list = 'ul' } html += `<li>${inline(m[1])}</li>`; continue }
-    if ((m = ln.match(/^\s*\d+[.)]\s+(.*)$/))) { if (list !== 'ol') { close(); html += '<ol>'; list = 'ol' } html += `<li>${inline(m[1])}</li>`; continue }
-    if ((m = ln.match(/^&gt;\s?(.*)$/))) { close(); html += `<blockquote>${inline(m[1])}</blockquote>`; continue }
+    if (!ln.trim()) { close(); continue; }
+    if ((m = ln.match(/^#{1,6}\s+(.*)$/))) { close(); html += `<h3>${inline(m[1])}</h3>`; continue; }
+    if ((m = ln.match(/^\s*[-*]\s+(.*)$/))) { if (list !== 'ul') { close(); html += '<ul>'; list = 'ul'; } html += `<li>${inline(m[1])}</li>`; continue; }
     close();
     html += `<p>${inline(ln)}</p>`;
   }
@@ -404,8 +457,7 @@ function md(src){
   return html;
 }
 
-// ---------- Отрисовка чата ----------
-let stick = true;   // липнем к низу, пока пользователь сам не пролистал вверх
+let stick = true;
 const scrollDown = () => { if (stick) chatEl.scrollTop = chatEl.scrollHeight };
 chatEl.addEventListener('scroll', () => { stick = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 80 }, { passive: true });
 
@@ -414,16 +466,15 @@ function chipEl(name, onRemove){
   const s = document.createElement('span'); s.className = 'chip';
   const n = document.createElement('span'); n.textContent = '📎 ' + name; s.append(n);
   if (onRemove) {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Убрать файл');
-    b.onclick = onRemove; s.append(b);
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.onclick = onRemove; s.append(b);
   }
   return s;
 }
 function addUser(text, files, still){
   clearEmpty();
   const d = document.createElement('div'); d.className = 'msg user' + (still ? ' still' : '');
-  const docs = files.filter(f => !f.preview);
-  files.filter(f => f.preview).forEach(f => { const im = new Image(); im.className = 'att'; im.src = f.preview; im.alt = f.name; im.onload = scrollDown; d.append(im) });
+  const docs = (files || []).filter(f => !f.preview);
+  (files || []).filter(f => f.preview).forEach(f => { const im = new Image(); im.className = 'att'; im.src = f.preview; im.alt = f.name; im.onload = scrollDown; d.append(im) });
   if (docs.length) { const c = document.createElement('div'); c.className = 'chips'; docs.forEach(f => c.append(chipEl(f.name))); d.append(c) }
   if (text) { const t = document.createElement('div'); t.textContent = text; d.append(t) }
   chatEl.append(d); scrollDown();
@@ -431,7 +482,7 @@ function addUser(text, files, still){
 function addBot(){
   clearEmpty();
   const d = document.createElement('div'); d.className = 'msg bot';
-  d.innerHTML = '<div class="content"><div class="typing" aria-label="Pipis AI печатает"><span></span><span></span><span></span></div></div>';
+  d.innerHTML = '<div class="content"><div class="typing" aria-label="Печатает"><span></span><span></span><span></span></div></div>';
   chatEl.append(d); scrollDown(); return d;
 }
 function addBotStatic(text){
@@ -446,62 +497,50 @@ function empty(){
     <h2>Привет, я Pipis AI</h2>
     <p>Напиши сообщение или прикрепи файл</p>
     <div class="sugg">
-      <button type="button" data-s="Объясни, как работает фотосинтез простыми словами">Объясни фотосинтез простыми словами</button>
-      <button type="button" data-s="Помоги составить план на неделю с учёбой и тренировками">Составить план на неделю</button>
-      <button type="button" data-s="Напиши короткое стихотворение про осень">Стихотворение про осень</button>
+      <button type="button" data-s="Привет! Как твои дела и настрой?">Привет! Как твои дела?</button>
+      <button type="button" data-s="Напиши простой калькулятор на JavaScript с кнопкой копирования кода">Калькулятор на JS</button>
     </div></div>`;
 }
-function renderChat(){
-  chatEl.innerHTML = '';
-  const c = active();
-  if (!c || !c.messages.length) { empty(); return }
-  c.messages.forEach(m => m.role === 'user' ? addUser(m.text, m.files || [], true) : addBotStatic(m.text));
-  stick = true; chatEl.scrollTop = chatEl.scrollHeight;
-}
-
-// ---------- Боковая панель ----------
-const openDrawer = () => { renderList(); document.body.classList.add('drawer-open'); $('drawer').setAttribute('aria-hidden', 'false') };
-const closeDrawer = () => { document.body.classList.remove('drawer-open'); $('drawer').setAttribute('aria-hidden', 'true') };
-const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
-
 function renderList(){
   const list = $('chatList'); list.innerHTML = '';
   const items = chats.filter(c => c.messages.length).sort((a, b) => b.ts - a.ts);
-  if (!items.length) { list.innerHTML = '<p class="list-empty">Пока пусто. Начни диалог.</p>'; return }
+  if (!items.length) { list.innerHTML = '<p class="list-empty">Пока пусто.</p>'; return; }
   for (const c of items) {
     const row = document.createElement('div'); row.className = 'chat-item' + (c.id === activeId ? ' active' : '');
     const open = document.createElement('button'); open.type = 'button'; open.className = 'chat-open'; open.textContent = c.title;
     open.onclick = () => openChat(c.id);
     const del = document.createElement('button'); del.type = 'button'; del.className = 'chat-del';
-    del.setAttribute('aria-label', 'Удалить чат «' + c.title + '»'); del.innerHTML = TRASH;
-    del.onclick = e => { e.stopPropagation(); deleteChat(c.id) };
+    del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+    del.onclick = e => { e.stopPropagation(); deleteChat(c.id); };
     row.append(open, del); list.append(row);
   }
 }
 function switchedChat(){
   pending = []; drawPending(); input.value = ''; autoGrow(); stick = true;
-  renderChat(); renderList(); save();
+  chatEl.innerHTML = '';
+  const c = active();
+  if (!c || !c.messages.length) empty();
+  else c.messages.forEach(m => m.role === 'user' ? addUser(m.text, m.files || [], true) : addBotStatic(m.text));
+  renderList(); save();
 }
-function openChat(id){ if (id !== activeId) { activeId = id; switchedChat() } closeDrawer() }
-function createChat(){ newChat(); switchedChat(); closeDrawer() }
+function openChat(id){ if (id !== activeId) { activeId = id; switchedChat(); } closeDrawer(); }
+function createChat(){ newChat(); switchedChat(); closeDrawer(); }
 function deleteChat(id){
   const c = chats.find(x => x.id === id);
-  if (!c || !confirm('Удалить чат «' + c.title + '»?')) return;
+  if (!c || !confirm('Удалить чат?')) return;
   chats = chats.filter(x => x.id !== id);
   if (id === activeId) {
     const last = [...chats].filter(x => x.messages.length).sort((a, b) => b.ts - a.ts)[0];
     if (last) activeId = last.id; else newChat();
     switchedChat();
-  } else { renderList(); save() }
+  } else { renderList(); save(); }
 }
-$('menu').onclick = openDrawer;
-$('newChat').onclick = openDrawer;
-$('closeMenu').onclick = closeDrawer;
+
+$('menu').onclick = () => { renderList(); document.body.classList.add('drawer-open');$('drawer').setAttribute('aria-hidden', 'false'); };
+const closeDrawer = () => { document.body.classList.remove('drawer-open'); $('drawer').setAttribute('aria-hidden', 'true'); };$('closeMenu').onclick = closeDrawer;
 $('scrim').onclick = closeDrawer;
 $('createChat').onclick = createChat;
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer() });
 
-// ---------- Настройки и темы ----------
 function applyTheme(t){
   if (!THEMES[t]) t = 'mint';
   document.documentElement.dataset.theme = t;
@@ -510,90 +549,70 @@ function applyTheme(t){
   store.set('pipis_theme', t);
 }
 document.querySelectorAll('.theme').forEach(b => b.onclick = () => applyTheme(b.dataset.theme));
-function openSettings(){
+$('settings').onclick = () => {
   closeDrawer();
-  $('key').value = store.get('pipis_key');
-  $('sys').value = store.get('pipis_sys') || DEFAULT_SYS;
-  $('max').value = store.get('pipis_max', DEFAULT_MAX);
-  $('base').value = store.get('pipis_base') || DEFAULT_BASE;
+  $('key').value = store.get('pipis_key');$('sys').value = store.get('pipis_sys') || DEFAULT_SYS;
+  $('max').value = store.get('pipis_max', DEFAULT_MAX);$('base').value = store.get('pipis_base') === DEFAULT_BASE ? '' : store.get('pipis_base');
   $('about').value = store.get('pipis_about');
   applyTheme(store.get('pipis_theme', 'mint'));
+  initMemoryUI();
   $('dlg').showModal();
-}
-$('settings').onclick = openSettings;
+};
 $('dlgForm').onsubmit = e => {
   if (e.submitter?.value !== 'ok') return;
   store.set('pipis_key', $('key').value.trim());
   store.set('pipis_sys', $('sys').value.trim());
   store.set('pipis_max', $('max').value.trim() || DEFAULT_MAX);
   const base = $('base').value.trim().replace(/\/+$/, '');
-  store.set('pipis_base', base === DEFAULT_BASE ? '' : base);
+  store.set('pipis_base', base);
   store.set('pipis_about', $('about').value.trim());
 };
 
-// ---------- Вложения и поле ввода ----------
 function drawPending(){
   const p = $('pending'); p.innerHTML = '';
   pending.forEach((f, i) => {
-    const remove = () => { pending.splice(i, 1); drawPending(); autoGrow() };
-    if (!f.preview) { p.append(chipEl(f.name, remove)); return }
+    const remove = () => { pending.splice(i, 1); drawPending(); autoGrow(); };
+    if (!f.preview) { p.append(chipEl(f.name, remove)); return; }
     const t = document.createElement('div'); t.className = 'thumb';
-    const im = new Image(); im.src = f.preview; im.alt = f.name;
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Убрать фото ' + f.name); b.onclick = remove;
+    const im = new Image(); im.src = f.preview;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.onclick = remove;
     t.append(im, b); p.append(t);
   });
 }
-function readFile(f){
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res({ name: f.name, mime: f.type || 'application/octet-stream', data: r.result.split(',')[1] });
-    r.onerror = () => rej(new Error('Не смог прочитать ' + f.name));
-    r.readAsDataURL(f);
-  });
+
+async function addFiles(list){
+  for (const f of list) {
+    if (f.size > 15 * 1024 * 1024) { alert('Файл больше 15 МБ'); continue; }
+    try {
+      const r = new FileReader();
+      const text = await new Promise((ok, bad) => {
+        r.onload = () => ok(r.result);
+        r.onerror = bad;
+        if (f.type.startsWith('image/')) r.readAsDataURL(f);
+        else r.readAsText(f);
+      });
+      const item = { name: f.name, mime: f.type || 'text/plain', data: null, text: null, preview: null };
+      if (f.type.startsWith('image/')) {
+        item.data = text.split(',')[1];
+        item.preview = text;
+      } else {
+        item.text = text;
+      }
+      pending.push(item);
+    } catch { alert('Ошибка чтения файла ' + f.name); }
+  }
+  drawPending(); autoGrow();
 }
+
+$('attach').onclick = () => $('file').click();$('file').onchange = async e => { const list = [...e.target.files]; e.target.value = ''; await addFiles(list); };
+
+input.addEventListener('input', autoGrow);
 function autoGrow(){
   input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px';
   send.disabled = busy || (!input.value.trim() && !pending.length);
 }
-// фото: уменьшаем до 1600px и жмём в JPEG — быстрее уходит и не упирается в лимит запроса
-async function prepImage(f){
-  if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 400 * 1024) return readFile(f);
-  try {
-    const bmp = await createImageBitmap(f);
-    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-    const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
-    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
-    bmp.close?.();
-    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .85));
-    if (!blob) return readFile(f);
-    return await readFile(new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
-  } catch { return readFile(f) }
-}
-async function addFiles(list){
-  for (const f of list) {
-    if (f.size > 15 * 1024 * 1024) { alert('Файл «' + f.name + '» больше 15 МБ'); continue }
-    try {
-      const it = f.type.startsWith('image/') ? await prepImage(f) : await readFile(f);
-      if (it.mime.startsWith('image/')) it.preview = 'data:' + it.mime + ';base64,' + it.data;
-      pending.push(it); drawPending(); autoGrow();
-    } catch (err) { alert(err.message) }
-  }
-}
-$('attach').onclick = () => $('file').click();            // accept="image/*": на телефоне предложит галерею или камеру
-$('attachDoc').onclick = () => $('fileDoc').click();
-for (const id of ['file', 'fileDoc']) {
-  $(id).onchange = async e => { const list = [...e.target.files]; e.target.value = ''; await addFiles(list) };
-}
-input.addEventListener('input', autoGrow);
-input.addEventListener('focus', () => setTimeout(scrollDown, 300));
-const isDesktop = matchMedia('(hover: hover) and (pointer: fine)').matches;
-input.addEventListener('keydown', e => {
-  if (isDesktop && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('form').requestSubmit() }
-});
-chatEl.addEventListener('click', e => {
-  const sg = e.target.closest('.sugg button');
-  if (sg) { input.value = sg.dataset.s; autoGrow(); $('form').requestSubmit(); return }
+
+document.addEventListener('click', e => {
   const cp = e.target.closest('.copy');
   if (cp) {
     const code = cp.closest('.code').querySelector('code').textContent;
@@ -601,31 +620,35 @@ chatEl.addEventListener('click', e => {
       cp.textContent = 'Скопировано'; setTimeout(() => cp.textContent = 'Копировать', 1500);
     });
   }
+  const im = e.target.closest('.ai-image');
+  if (im) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;z-index:999;background:#000e;display:grid;place-items:center;padding:15px';
+    d.innerHTML = '<button style="position:absolute;right:15px;top:15px;width:42px;height:42px;border:0;border-radius:50%;background:#222;color:#fff;font-size:24px">×</button><img style="max-width:100%;max-height:92%;object-fit:contain" src="'+esc(im.src)+'">';
+    d.onclick = x => { if (x.target === d || x.target.tagName === 'BUTTON') d.remove(); };
+    document.body.append(d);
+  }
 });
 
-// ---------- Сеть: повторы + запасные модели ----------
+function apiBase(){ return (store.get('pipis_base') || DEFAULT_BASE).trim().replace(/\/+$/, '') }
+
 function buildBody(model, thinking, c){
   const body = {
-    contents: toContents(c.messages),     // вся переписка → у Pipis AI есть память диалога
+    contents: toContents(c.messages),
     safetySettings,
     generationConfig: { maxOutputTokens: Math.max(100, parseInt(store.get('pipis_max', DEFAULT_MAX)) || DEFAULT_MAX) }
   };
-  // у Gemini 3 по умолчанию «среднее» мышление, это главный тормоз — ставим low
   if (thinking && model.startsWith('gemini-3')) body.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
-  // «Обо мне» подмешиваем в каждый запрос, поэтому Pipis AI помнит пользователя в любом чате
+  
   const about = store.get('pipis_about').trim();
   let sys = (store.get('pipis_sys') || DEFAULT_SYS) + '\n\n' + FREE_STYLE;
-  if (about) sys += '\n\nПамять о пользователе (учитывай всегда, в любом чате, но не пересказывай без нужды):\n' + about;
+  if (about) sys += '\n\nПамять: ' + about;
+  if (memories.length) sys += '\n\nФакты:\n' + memories.map((x,i)=>(i+1)+'. '+x).join('\n');
   sys += '\n\n' + NO_LATEX;
   body.systemInstruction = { parts: [{ text: sys }] };
   return body;
 }
-// базовый адрес API: по умолчанию Google, либо свой прокси (Cloudflare Worker и т.п.)
-function apiBase(){ return (store.get('pipis_base') || DEFAULT_BASE).trim().replace(/\/+$/, '') }
-function proxyHint(){
-  if (apiBase() === DEFAULT_BASE) return '';
-  try { return ' (прокси: ' + new URL(apiBase()).host + ')' } catch { return ' (прокси: ' + apiBase() + ')' }
-}
+
 async function callWithRetry(model, body, key){
   const url = apiBase() + '/v1beta/models/' + encodeURIComponent(model) + ':streamGenerateContent?alt=sse';
   for (let i = 0; ; i++) {
@@ -636,41 +659,57 @@ async function callWithRetry(model, body, key){
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify(body)
       });
-    } catch { r = null }                       // нет сети
+    } catch {}
     if (r && r.ok) return r;
     const status = r ? r.status : 0;
-    if ([0, 429, 500, 503, 504].includes(status) && i < 2) { await sleep(1800); continue }   // до 2 повторов
-    let msg = r ? `${r.status} ${r.statusText}` : 'нет связи с сервером' + proxyHint();
+    if ([0, 429, 500, 503, 504].includes(status) && i < 2) { await sleep(1800); continue; }
+    let msg = r ? `${r.status} ${r.statusText}` : 'нет связи';
     if (r) { try { msg = (await r.json()).error.message } catch {} }
     const err = new Error(msg); err.status = status; throw err;
   }
 }
+
 async function generate(key, c){
+  const model = store.get('pipis_model', MODELS[0]);
   let lastErr;
-  for (const model of MODELS) {
-    try {
-      try { return await callWithRetry(model, buildBody(model, true, c), key) }
-      catch (err) {
-        // модель не приняла thinkingConfig — повторяем без него
-        if (err.status === 400 && /think/i.test(err.message)) return await callWithRetry(model, buildBody(model, false, c), key);
-        throw err;
-      }
-    } catch (err) {
-      lastErr = err;
-      // ключ/запрос неверны — смена модели не поможет; снятая с поддержки модель — идём к следующей
-      if (![0, 404, 429, 500, 503, 504].includes(err.status) && !/no longer available|not found|deprecated/i.test(err.message)) throw err;
+  try {
+    try { return await callWithRetry(model, buildBody(model, true, c), key); }
+    catch (err) {
+      if (err.status === 400 && /think/i.test(err.message)) return await callWithRetry(model, buildBody(model, false, c), key);
+      throw err;
     }
+  } catch (err) {
+    lastErr = err;
+    throw err;
   }
-  throw lastErr;
 }
 
-// ---------- Отправка ----------
+const imageIntent = t => /^\/img\b/i.test(t) || /(нарисуй|нарисовать|сгенерируй(?:те)?\s+(?:картин|изображен)|создай\s+(?:картин|изображен))/i.test(t);
+
+async function imageGen(prompt, key){
+  const p = prompt.replace(/^\/img\s*/i, '').trim();
+  const r = await fetch(apiBase() + '/v1beta/models/imagen-4.0-generate-001:predict', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({ instances: [{ prompt: p }], parameters: { sampleCount: 1 } })
+  });
+  if (!r.ok) {
+    let m = r.status + ' ' + r.statusText;
+    try { m = (await r.json()).error.message || m; } catch {}
+    throw new Error(m);
+  }
+  const j = await r.json(), x = j.predictions?.[0];
+  if (x?.bytesBase64Encoded) return 'data:' + (x.mimeType || 'image/png') + ';base64,' + x.bytesBase64Encoded;
+  if (x?.url) return x.url;
+  throw new Error('Imagen не вернул изображение');
+}
+
 $('form').onsubmit = async e => {
   e.preventDefault();
   const text = input.value.trim();
   if (busy || (!text && !pending.length)) return;
   const key = store.get('pipis_key');
-  if (!key) { openSettings(); return }
+  if (!key) { $('dlg').showModal(); return; }
 
   const c = active();
   const files = pending; pending = []; drawPending();
@@ -678,79 +717,62 @@ $('form').onsubmit = async e => {
 
   const userMsg = {
     role: 'user', text,
-    files: files.map(f => ({ name: f.name, mime: f.mime, preview: f.mime.startsWith('image/') ? f.preview : undefined })),
-    inline: files.map(f => ({ inline_data: { mime_type: f.mime, data: f.data } }))
+    files: files.map(f => ({ name: f.name, mime: f.mime, preview: f.preview })),
+    inline: files.filter(f => f.data).map(f => ({ inline_data: { mime_type: f.mime, data: f.data } })),
+    fileTexts: files.filter(f => f.text).map(f => ({ name: f.name, text: f.text }))
   };
   c.messages.push(userMsg);
-  if (c.messages.length === 1) c.title = (text || files[0].name).replace(/\s+/g, ' ').slice(0, 40);
-  c.ts = Date.now();
-  save(); renderList();
+  if (c.messages.length === 1) c.title = (text || files[0]?.name || 'Новый чат').replace(/\s+/g, ' ').slice(0, 40);
+  c.ts = Date.now(); save(); renderList();
   stick = true; addUser(text, userMsg.files);
 
   const bot = addBot();
-  let full = '', finish = '';
   try {
-    const res = await generate(key, c);
-    const reader = res.body.getReader(), dec = new TextDecoder();
-    let buf = '';
-    bot.querySelector('.content').innerHTML = '';
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream: true });
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const ln of lines) {
-        if (!ln.startsWith('data:')) continue;
-        try {
-          const j = JSON.parse(ln.slice(5));
-          const cand = j.candidates?.[0];
-          for (const p of cand?.content?.parts || []) if (p.text) full += p.text;
-          if (cand?.finishReason) finish = cand.finishReason;
-          if (full && bot.isConnected) setText(bot, full);
-        } catch {}
+    if (imageIntent(text)) {
+      const src = await imageGen(text, key);
+      const safe = esc(src);
+      bot.querySelector('.content').innerHTML = '<p>Готово.</p><img class="ai-image" src="'+safe+'" alt="Pipis AI"><br><a class="download-file" download="pipis-image.png" href="'+safe+'">⬇ Скачать изображение</a>';
+      c.messages.push({ role: 'model', text: 'Сгенерировано изображение: ' + src });
+      save();
+    } else {
+      const res = await generate(key, c);
+      const reader = res.body.getReader(), dec = new TextDecoder();
+      let buf = '', full = '';
+      bot.querySelector('.content').innerHTML = '';
+      for (;;) {
+        const q = await reader.read();
+        if (q.done) break;
+        buf += dec.decode(q.value, { stream: true });
+        const ls = buf.split('\n'); buf = ls.pop();
+        for (const ln of ls) {
+          if (!ln.startsWith('data:')) continue;
+          try {
+            const j = JSON.parse(ln.slice(5));
+            for (const p of j.candidates?.[0]?.content?.parts || []) if (p.text) full += p.text;
+            if (full) setText(bot, full);
+          } catch {}
+        }
       }
-    }
-    if (!full) throw new Error('Пустой ответ (возможно, сработал фильтр безопасности).');
-    if (chats.includes(c)) { c.messages.push({ role: 'model', text: full }); c.ts = Date.now(); save(); renderList() }
-    if (!bot.isConnected && activeId === c.id) renderChat();   // пока шла генерация, чат переключали туда-обратно
-    else if (finish === 'MAX_TOKENS' && bot.isConnected) {
-      const m = document.createElement('div'); m.className = 'meta';
-      m.textContent = 'Ответ обрезан лимитом длины. Напиши «продолжи» или увеличь лимит в настройках.'; bot.append(m);
+      if (!full) throw new Error('Пустой ответ');
+      c.messages.push({ role: 'model', text: full });
+      save();
     }
   } catch (err) {
-    const i = c.messages.indexOf(userMsg); if (i >= 0) c.messages.splice(i, 1);   // неудавшееся сообщение из истории убираем
-    save(); renderList();
-    if (bot.isConnected) {
-      bot.classList.add('err');
-      bot.querySelector('.content').textContent = 'Ошибка: ' + err.message;
-    }
-    if (activeId === c.id) { input.value = text; pending = [...files, ...pending]; drawPending() }   // текст и вложения возвращаем, чтобы не перепечатывать
+    bot.classList.add('err');
+    bot.querySelector('.content').textContent = 'Ошибка: ' + err.message;
+    c.messages.pop();
+    save();
   } finally {
     busy = false; autoGrow(); input.focus();
   }
 };
 
-// ---------- Клавиатура на мобилках ----------
-function fitViewport(){
-  const raw = window.visualViewport ? visualViewport.height : innerHeight;
-  // в WebView на старте высота может прийти нулевой или огромной: тогда не трогаем CSS-значение по умолчанию
-  if (raw > 200 && raw < 4000) document.documentElement.style.setProperty('--vh', raw + 'px');
-  scrollDown();
-}
-window.visualViewport?.addEventListener('resize', fitViewport);
-window.visualViewport?.addEventListener('scroll', fitViewport);
-window.addEventListener('resize', fitViewport);
-
-// ---------- Старт ----------
+// Старт
 applyTheme(store.get('pipis_theme', 'mint'));
+initModelSelector();
 load();
-renderChat();
-renderList();
-fitViewport();
-autoGrow();
-if (!store.get('pipis_key')) setTimeout(openSettings, 300);
-
+switchedChat();
+if (!store.get('pipis_key')) setTimeout(() => $('dlg').showModal(), 300);
 </script>
-<script src="pipis-enhancements.js"></script>
 </body>
 </html>
