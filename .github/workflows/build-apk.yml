@@ -1,4 +1,4 @@
-name: Build Pipis AI APK
+Name: Build Pipis AI APK
 
 on:
   push:
@@ -48,22 +48,33 @@ jobs:
           for f in index.html style.css script.js pipis-enhancements.js; do
             if [ -f "$f" ]; then cp "$f" www/; fi
           done
-          if [ -f www/index.html ] && [ -f www/pipis-enhancements.js ]; then
-            python3 - <<'PY'
-          from pathlib import Path
-          p = Path('www/index.html')
-          s = p.read_text(encoding='utf-8')
-          tag = '<script src="pipis-enhancements.js"></script>'
-          if tag not in s:
-              s = s.replace('</body>', tag + '\n</body>', 1)
-              p.write_text(s, encoding='utf-8')
-          PY
-          fi
           ls -la www
 
       - name: Generate Android project (once, in CI)
         run: |
           if [ ! -d android ]; then npx cap add android; fi
+
+      - name: Auto-increment versionCode & versionName
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          
+          # Находим build.gradle внутри android/app
+          gradle_path = Path('android/app/build.gradle')
+          if gradle_path.exists():
+              content = gradle_path.read_text(encoding='utf-8')
+              
+              # Ставим versionCode = номер запуска на GitHub (например, 12, 13, 14...)
+              run_number = "${{ github.run_number }}"
+              content = re.sub(r'versionCode\s+\d+', f'versionCode {run_number}', content)
+              
+              # Ставим versionName = 1.0.НОМЕР_РАНА
+              content = re.sub(r'versionName\s+"[^"]+"', f'versionName "1.0.{run_number}"', content)
+              
+              gradle_path.write_text(content, encoding='utf-8')
+              print(f"Обновили версию в Gradle! Новая версия: 1.0.{run_number} (code: {run_number})")
+          PY
 
       - name: Sync web files into Android
         run: npx cap sync android
