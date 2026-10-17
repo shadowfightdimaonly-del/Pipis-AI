@@ -1,0 +1,8 @@
+{
+  "appId": "ai.pipis.app",
+  "appName": "Pipis AI",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

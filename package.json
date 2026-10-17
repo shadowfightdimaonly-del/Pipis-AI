@@ -1,0 +1,16 @@
+{
+  "name": "pipis-ai",
+  "version": "1.0.0-beta.1",
+  "private": true,
+  "description": "Pipis AI — клиент для Gemini API (бета)",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
