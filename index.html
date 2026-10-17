@@ -1,88 +1,1111 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="mint">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pipis AI</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: #0f0d15; color: #fff; height: 100vh; display: flex; flex-direction: column; }
-        header { padding: 16px; background: #171422; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #282338; }
-        .logo { font-size: 20px; font-weight: bold; color: #a855f7; display: flex; align-items: center; gap: 8px; }
-        .badge { background: #8b5cf6; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
-        select { background: #231f33; color: #fff; border: 1px solid #3b3354; padding: 6px 12px; border-radius: 8px; outline: none; }
-        #chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-        .msg { max-width: 85%; padding: 12px 16px; border-radius: 16px; word-break: break-word; line-height: 1.4; }
-        .user { align-self: flex-end; background: #7c3aed; color: #fff; border-bottom-right-radius: 4px; }
-        .ai { align-self: flex-start; background: #1e1a2e; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid #2d2645; }
-        .error { background: #451a1a; border-color: #7f1d1d; color: #fca5a5; }
-        .file-btn { display: inline-flex; align-items: center; gap: 8px; background: #2e2647; color: #c084fc; border: 1px solid #581c87; padding: 10px 14px; border-radius: 10px; text-decoration: none; margin-top: 8px; font-weight: 500; }
-        .img-result { max-width: 100%; border-radius: 12px; margin-top: 8px; }
-        footer { padding: 12px 16px; background: #171422; border-top: 1px solid #282338; display: flex; gap: 8px; }
-        input { flex: 1; background: #231f33; border: 1px solid #3b3354; color: #fff; padding: 12px 16px; border-radius: 24px; outline: none; }
-        button { background: #7c3aed; color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1312">
+<title>Pipis AI</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('pipis_theme')||'mint'}catch(e){}</script>
+<style>
+/* ---------- Темы ---------- */
+:root{
+  --bg:#0b1312; --bg-rgb:11,19,18; --panel:#0f1a18;
+  --rgb:16,185,129; --acc:#10b981; --acc2:#059669; --light:#6ee7b7;
+  --ink:#e6f7f1; --mute:#7fa89a; --glow:.14;
+  --line:rgba(var(--rgb),.2); --card:rgba(var(--rgb),.06);
+  --vh:100dvh; color-scheme:dark;
+}
+:root[data-theme="oled"]{
+  --bg:#000000; --bg-rgb:0,0,0; --panel:#0a0a0a;
+  --rgb:14,165,233; --acc:#0ea5e9; --acc2:#0369a1; --light:#7dd3fc;
+  --ink:#f2f2f2; --mute:#8a8f98; --glow:.06;
+}
+:root[data-theme="purple"]{
+  --bg:#0e0a1a; --bg-rgb:14,10,26; --panel:#150f26;
+  --rgb:168,85,247; --acc:#a855f7; --acc2:#7c3aed; --light:#d8b4fe;
+  --ink:#f1e8ff; --mute:#a597c4; --glow:.16;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg)}
+body{color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+#app{height:var(--vh);display:flex;flex-direction:column;
+  background:radial-gradient(120% 55% at 50% -12%,rgba(var(--rgb),var(--glow)),transparent 60%),var(--bg)}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+textarea:focus,textarea:focus-visible{outline:none}
+
+/* ---------- Шапка ---------- */
+header{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px 12px;
+  border-bottom:1px solid var(--line);background:rgba(var(--bg-rgb),.82);backdrop-filter:blur(10px)}
+.brand{white-space:nowrap;font-size:20px;font-weight:700;letter-spacing:.3px;flex:1;margin:0;
+  background:linear-gradient(90deg,var(--light),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{background:transparent;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:14px;cursor:pointer;min-height:40px;white-space:nowrap}
+.btn:active,.hicon:active{background:rgba(var(--rgb),.14)}
+.hicon{flex:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:transparent;
+  display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.hicon svg{width:20px;height:20px}
+
+/* ---------- Чат ---------- */
+#chat{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:16px 14px;display:flex;flex-direction:column;gap:14px}
+.msg{animation:in .28s ease-out}
+.msg.still{animation:none}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.msg.user{align-self:flex-end;max-width:85%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
+  padding:10px 14px;border-radius:20px 20px 6px 20px;white-space:pre-wrap;overflow-wrap:anywhere;
+  box-shadow:0 6px 20px rgba(var(--rgb),.22)}
+.msg.user .chips{margin-bottom:6px}
+.msg.user .chip{background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.25);color:#fff}
+.msg.bot{align-self:stretch;max-width:94%;background:var(--card);border:1px solid var(--line);
+  border-radius:20px 20px 20px 6px;padding:12px 14px;backdrop-filter:blur(8px);overflow-wrap:anywhere;min-width:0}
+.msg.bot p{margin:.45em 0}
+.msg.bot p:first-child{margin-top:0}.msg.bot p:last-child{margin-bottom:0}
+.msg.bot h3{font-size:17px;margin:.7em 0 .3em}
+.msg.bot ul,.msg.bot ol{padding-left:1.3em;margin:.4em 0}
+.msg.bot li{margin:.2em 0}
+.msg.bot blockquote{margin:.5em 0;padding:.2em .8em;border-left:3px solid var(--acc);color:var(--mute)}
+.msg.bot a{color:var(--light)}
+.msg.bot code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;background:rgba(var(--rgb),.14);padding:1px 6px;border-radius:6px}
+.code{margin:10px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.45)}
+.code-head{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 12px;font-size:12px;color:var(--mute);background:rgba(var(--rgb),.08)}
+.copy,.dl{background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer;flex:none}
+.copy:active,.dl:active{background:rgba(var(--rgb),.16)}
+.code-head .lang{font-weight:600;color:var(--ink)}
+.code-head .fname{color:var(--light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.code-head .spacer{flex:1}
+.code pre{margin:0;padding:12px;overflow-x:auto;font-size:13.5px;line-height:1.5}
+.code pre code{background:none;padding:0;font-family:ui-monospace,Menlo,Consolas,monospace}
+.meta{font-size:12px;color:var(--mute);margin-top:8px}
+.msg.err{border-color:#f87171}
+.msg.err .content{color:#fca5a5}
+.typing{display:flex;gap:6px;padding:8px 2px}
+.typing span{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:pulse 1.2s infinite ease-in-out}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,80%,100%{opacity:.25;transform:scale(.75)}40%{opacity:1;transform:scale(1)}}
+
+.empty{margin:auto;text-align:center;padding:24px 8px;animation:in .4s ease-out}
+.empty h2{font-size:28px;margin:0 0 6px;background:linear-gradient(90deg,var(--light),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent}
+.empty p{color:var(--mute);margin:0}
+.sugg{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.sugg button{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:14px;padding:10px 14px;font-size:14px;cursor:pointer;text-align:left}
+.sugg button:active{background:rgba(var(--rgb),.16)}
+
+/* ---------- Ввод ---------- */
+.composer{flex:none;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 12px);background:linear-gradient(rgba(var(--bg-rgb),0),var(--bg) 30%)}
+.box{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:6px;padding:8px;
+  background:rgba(var(--rgb),.07);border:1px solid var(--line);border-radius:20px;backdrop-filter:blur(12px);transition:border-color .2s}
+.box:focus-within{border-color:rgba(var(--rgb),.55)}
+.row{display:flex;align-items:flex-end;gap:4px}
+.box textarea{flex:1;min-width:0;resize:none;background:transparent;border:0;color:var(--ink);font:inherit;font-size:16px;padding:9px 6px;max-height:160px}
+.box textarea::placeholder{color:var(--mute)}
+.icon{flex:none;width:42px;height:42px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:var(--mute)}
+.icon:active{background:rgba(var(--rgb),.12)}
+.icon svg{width:21px;height:21px}
+#send{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 4px 14px rgba(var(--rgb),.35);transition:transform .15s,opacity .2s}
+#send:active{transform:scale(.92)}
+#send:disabled{opacity:.35;box-shadow:none;cursor:default;transform:none}
+#pending{display:flex;flex-wrap:wrap;gap:6px;padding:4px 6px 0}
+#pending:empty{display:none}
+.chip{font-size:13px;background:rgba(var(--rgb),.12);border:1px solid var(--line);border-radius:10px;padding:3px 4px 3px 10px;
+  display:inline-flex;align-items:center;gap:4px;max-width:100%}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.thumb{position:relative;width:72px;height:72px;border-radius:14px;overflow:hidden;border:1px solid var(--line);flex:none;background:rgba(0,0,0,.3)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;
+  font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.msg.user .att{display:block;width:min(220px,100%);max-height:240px;object-fit:cover;border-radius:14px;margin-bottom:6px}
+.chip button{background:none;border:0;color:var(--acc);font-size:17px;cursor:pointer;padding:0 6px;line-height:1}
+
+/* ---------- Боковая панель ---------- */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:20}
+#drawer{position:fixed;top:0;bottom:0;left:0;width:min(320px,86vw);z-index:21;display:flex;flex-direction:column;gap:10px;
+  background:var(--panel);border-right:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px);
+  transform:translateX(-100%);visibility:hidden;transition:transform .28s ease,visibility .28s}
+body.drawer-open #scrim{opacity:1;visibility:visible}
+body.drawer-open #drawer{transform:none;visibility:visible}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+.drawer-head h2{margin:0;font-size:20px}
+.create{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:0;border-radius:14px;padding:12px;font-weight:600;font-size:15px;cursor:pointer;
+  box-shadow:0 4px 14px rgba(var(--rgb),.3)}
+.create:active{transform:scale(.98)}
+.chat-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.list-empty{color:var(--mute);font-size:14px;text-align:center;margin:20px 8px}
+.chat-item{display:flex;align-items:center;border-radius:12px;border:1px solid transparent}
+.chat-item.active{background:rgba(var(--rgb),.12);border-color:var(--line)}
+.chat-open{flex:1;min-width:0;text-align:left;background:none;border:0;color:var(--ink);padding:11px 12px;font-size:15px;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-del{flex:none;width:40px;height:40px;background:none;border:0;color:var(--mute);display:grid;place-items:center;cursor:pointer;border-radius:10px}
+.chat-del:active{background:rgba(248,113,113,.15);color:#f87171}
+.chat-del svg{width:18px;height:18px}
+
+/* ---------- Настройки ---------- */
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:20px;width:min(420px,92vw);max-height:90vh;padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+dialog h3{margin:0 0 4px;font-size:20px}
+dialog label{display:block;font-size:13px;color:var(--mute);margin:16px 0 6px}
+dialog input,dialog textarea{width:100%;display:block;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+dialog textarea{font-size:15px;resize:vertical;max-height:240px}
+dialog input:focus,dialog textarea:focus{border-color:var(--acc);outline:none}
+.hint{font-size:12px;color:var(--mute);margin:6px 2px 0}
+.themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.theme{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;border-radius:14px;border:1px solid var(--line);
+  background:transparent;color:var(--ink);font-size:12px;cursor:pointer}
+.theme[aria-pressed="true"]{border-color:var(--acc);background:rgba(var(--rgb),.14)}
+.sw{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.18)}
+.sw-mint{background:linear-gradient(135deg,#10b981,#059669)}
+.sw-oled{background:linear-gradient(135deg,#000 50%,#0ea5e9 50%)}
+.sw-purple{background:linear-gradient(135deg,#a855f7,#7c3aed)}
+details{margin-top:16px}
+summary{cursor:pointer;color:var(--mute);font-size:14px;padding:4px 0}
+dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;position:sticky;bottom:-20px;padding:12px 0 0;background:var(--panel)}
+dialog .save{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:0;border-radius:12px;padding:10px 18px;font-weight:600;cursor:pointer}
+dialog .cancel{background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 16px;cursor:pointer}
+
+@media (max-width:400px){
+  header{gap:6px;padding-left:10px;padding-right:10px}
+  .brand{font-size:18px}
+  .btn{padding:8px 10px;font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- Выбор модели ---------- */
+.modelbar{flex:none;position:relative;padding:8px 12px 0}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(var(--rgb),.1);border:1px solid var(--line);color:var(--ink);
+  border-radius:999px;padding:7px 12px 7px 10px;font-size:13px;cursor:pointer;min-height:36px}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.pill svg{width:14px;height:14px;opacity:.7}
+.pill[aria-expanded="true"] svg{transform:rotate(180deg)}
+.model-menu{position:absolute;top:calc(100% + 6px);left:12px;width:min(340px,calc(100% - 24px));background:var(--panel);border:1px solid var(--line);
+  border-radius:16px;padding:6px;z-index:15;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.model-menu[hidden]{display:none}
+.model-opt{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--ink);text-align:left;padding:10px 12px;border-radius:12px;cursor:pointer}
+.model-opt:active{background:rgba(var(--rgb),.14)}
+.model-opt[aria-selected="true"]{background:rgba(var(--rgb),.12)}
+.mo-text{flex:1;display:flex;flex-direction:column;min-width:0}
+.mo-name{font-size:15px;font-weight:600}
+.mo-desc{font-size:12px;color:var(--mute)}
+.mo-check{color:var(--acc);font-weight:700;visibility:hidden}
+.model-opt[aria-selected="true"] .mo-check{visibility:visible}
+
+/* ---------- Профиль и память в меню ---------- */
+.profile{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:10px 12px;cursor:pointer;color:var(--ink)}
+.profile:active{background:rgba(var(--rgb),.14)}
+.avatar{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:19px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 4px 14px rgba(var(--rgb),.35)}
+.pinfo{display:flex;flex-direction:column;min-width:0}
+.pname{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pstat{font-size:12px;color:var(--light)}
+.drawer-row{display:flex;gap:8px}
+.drawer-row .create{flex:1}
+.soft{flex:none;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:14px;padding:12px 14px;font-size:15px;cursor:pointer}
+.soft:active{background:rgba(var(--rgb),.16)}
+.soft span{color:var(--acc);font-weight:700;margin-left:2px}
+
+/* ---------- Память ---------- */
+.mem-list{display:flex;flex-direction:column;gap:6px;margin:12px 0;max-height:42vh;overflow-y:auto}
+.mem-item{display:flex;align-items:flex-start;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 12px}
+.mem-item span{flex:1;min-width:0;overflow-wrap:anywhere;font-size:15px}
+.mem-item button{flex:none;width:32px;height:32px;border-radius:10px;border:0;background:none;color:var(--mute);font-size:20px;line-height:1;cursor:pointer}
+.mem-item button:active{background:rgba(248,113,113,.15);color:#f87171}
+.mem-empty{color:var(--mute);font-size:14px;text-align:center;margin:18px 6px}
+.mem-add{display:flex;gap:8px;align-items:center}
+.mem-add input{flex:1;min-width:0}
+.mem-add .save{flex:none;padding:10px 14px}
+.linkbtn{width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font-size:15px;cursor:pointer}
+.linkbtn:active{background:rgba(var(--rgb),.16)}
+
+/* ---------- Картинки в чате ---------- */
+.imgwrap{margin:8px 0 2px}
+.gen{display:block;width:100%;max-width:420px;border-radius:14px;border:1px solid var(--line);cursor:zoom-in;background:rgba(0,0,0,.3)}
+.imgbtns{display:flex;gap:8px;margin-top:8px}
+.imgbtns button{background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:6px 12px;font-size:13px;cursor:pointer}
+.imgbtns button:active{background:rgba(var(--rgb),.16)}
+.imgph{color:var(--mute);font-size:14px;padding:8px 0}
+#lightbox{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.94);flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px)}
+#lightbox:not([hidden]){display:flex}
+#lightbox[hidden]{display:none}
+#lbImg{max-width:100%;max-height:calc(100% - 70px);object-fit:contain;border-radius:8px}
+.lb-bar{display:flex;gap:10px}
+.lb-bar button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:12px;padding:10px 18px;font-size:15px;cursor:pointer}
+.lb-bar #lbDl{background:linear-gradient(135deg,var(--acc),var(--acc2));border:0;font-weight:600}
+
+</style>
 </head>
 <body>
+<div id="app">
+  <header>
+    <button id="menu" class="hicon" type="button" aria-label="Открыть список чатов">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <h1 class="brand">Pipis AI <span style="font-size:11px;opacity:.6;-webkit-text-fill-color:initial;color:#7fa89a">b4</span></h1>
+    <button id="newChat" class="btn" type="button">Новый чат</button>
+    <button id="settings" class="hicon" type="button" aria-label="Настройки">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
 
-<header>
-    <div class="logo">Pipis AI <span class="badge">v3</span></div>
-    <select id="modelSelect">
-        <option value="gemini-3.8-flash">gemini-3.8-flash</option>
-    </select>
-</header>
+  <div class="modelbar">
+    <button id="modelBtn" class="pill" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Выбрать модель">
+      <span class="dot"></span><span id="modelName"></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div id="modelMenu" class="model-menu" role="listbox" aria-label="Модель" hidden></div>
+  </div>
 
-<div id="chat"></div>
+  <main id="chat" aria-live="polite"></main>
 
-<footer>
-    <input type="text" id="userInput" placeholder="Спроси что-нибудь или /img [запрос]..." onkeydown="if(event.key==='Enter') sendMsg()">
-    <button onclick="sendMsg()">➔</button>
-</footer>
+  <footer class="composer">
+    <form id="form" class="box" autocomplete="off">
+      <div id="pending"></div>
+      <div class="row">
+        <button type="button" id="attach" class="icon" aria-label="Фото из галереи или камера">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input type="file" id="file" accept="image/*" multiple hidden>
+        <button type="button" id="attachDoc" class="icon" aria-label="Прикрепить файл: текст, код, PDF, аудио, видео">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </button>
+        <input type="file" id="fileDoc" multiple hidden>
+        <textarea id="input" rows="1" placeholder="Спроси что-нибудь…" aria-label="Сообщение"></textarea>
+        <button id="send" class="icon" type="submit" aria-label="Отправить" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </form>
+  </footer>
+</div>
+
+<!-- Боковая панель -->
+<div id="scrim"></div>
+<aside id="drawer" aria-label="Чаты" aria-hidden="true">
+  <div class="drawer-head">
+    <h2>Чаты</h2>
+    <button id="closeMenu" class="hicon" type="button" aria-label="Закрыть меню">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <button id="profile" class="profile" type="button" aria-label="Профиль и настройки">
+    <span id="avatar" class="avatar">Г</span>
+    <span class="pinfo"><span id="pname" class="pname">Гость</span><span id="pstat" class="pstat">Локальный режим</span></span>
+  </button>
+  <div class="drawer-row">
+    <button id="createChat" class="create" type="button">+ Создать чат</button>
+    <button id="memBtn" class="soft" type="button" aria-label="Память Pipis AI">Память <span id="memCount">0</span></button>
+  </div>
+  <div id="chatList" class="chat-list"></div>
+</aside>
+
+<!-- Настройки -->
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h3>Настройки</h3>
+
+    <label for="key">Gemini API ключ</label>
+    <input id="key" type="password" autocomplete="off" placeholder="AIza…">
+    <p class="hint">Хранится только на этом устройстве.</p>
+
+    <label for="uname">Имя пользователя</label>
+    <input id="uname" type="text" maxlength="40" autocomplete="off" placeholder="Гость">
+
+    <label>Память Pipis AI</label>
+    <button type="button" id="openMem" class="linkbtn">Управлять памятью (0)</button>
+
+    <label for="base">Custom API Proxy URL (опционально)</label>
+    <input id="base" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://generativelanguage.googleapis.com">
+    <p class="hint">Все запросы к Gemini пойдут через этот адрес. API-ключ тоже проходит через прокси, поэтому используй только свой.</p>
+
+    <label>Тема оформления</label>
+    <div class="themes" role="group" aria-label="Тема оформления">
+      <button type="button" class="theme" data-theme="mint" aria-pressed="false"><span class="sw sw-mint"></span>Cyber Mint</button>
+      <button type="button" class="theme" data-theme="oled" aria-pressed="false"><span class="sw sw-oled"></span>OLED Black</button>
+      <button type="button" class="theme" data-theme="purple" aria-pressed="false"><span class="sw sw-purple"></span>Neon Purple</button>
+    </div>
+
+    <details>
+      <summary>Дополнительно</summary>
+      <label for="sys">Характер Pipis AI (системная инструкция)</label>
+      <textarea id="sys" rows="5"></textarea>
+      <label for="max">Макс. длина ответа (токены)</label>
+      <input id="max" type="number" min="100" step="100" inputmode="numeric">
+      <label for="imgModel">Модель для картинок</label>
+      <input id="imgModel" type="text" autocapitalize="off" spellcheck="false" placeholder="gemini-3.1-flash-image">
+      <p class="hint">Картинки: напиши «/img кот в скафандре» или «нарисуй …».</p>
+    </details>
+
+    <div class="actions">
+      <button class="cancel" value="cancel" formnovalidate>Отмена</button>
+      <button class="save" value="ok">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Память -->
+<dialog id="dlgMem">
+  <form method="dialog" id="memForm">
+    <h3>Память Pipis AI</h3>
+    <p class="hint">Эти факты подмешиваются в каждый запрос, в любом чате.</p>
+    <div id="memList" class="mem-list"></div>
+    <div class="mem-add">
+      <input id="memInput" type="text" maxlength="300" autocomplete="off" placeholder="Например: люблю короткие ответы">
+      <button type="button" id="memAdd" class="save">Добавить</button>
+    </div>
+    <div class="actions"><button class="cancel" value="close" formnovalidate>Закрыть</button></div>
+  </form>
+</dialog>
+
+<!-- Просмотр картинки -->
+<div id="lightbox" hidden>
+  <img id="lbImg" alt="Сгенерированное изображение">
+  <div class="lb-bar">
+    <button id="lbDl" type="button">Скачать</button>
+    <button id="lbClose" type="button">Закрыть</button>
+  </div>
+</div>
 
 <script>
-    const API_KEY = ""; // Вставь свой ключ Gemini, если требуется статично, или обработай динамически
+(function(){
+  function banner(msg){
+    var d = document.getElementById('bootErr');
+    if(!d){ d = document.createElement('div'); d.id = 'bootErr';
+      d.style.cssText = 'position:fixed;left:12px;right:12px;top:84px;z-index:99;background:#3b0d0d;color:#fecaca;border:1px solid #f87171;border-radius:14px;padding:12px 14px;font:14px/1.4 system-ui,sans-serif;white-space:pre-wrap';
+      document.body.appendChild(d); }
+    d.textContent += msg + '\n';
+  }
+  window.addEventListener('error', function(e){
+    if (e.target && e.target.tagName === 'SCRIPT') banner('Не загрузился файл ' + (e.target.getAttribute('src') || 'скрипта') + '. Он должен лежать рядом с index.html.');
+    else banner('Ошибка JS: ' + e.message + (e.lineno ? ' (строка ' + e.lineno + ')' : ''));
+  }, true);
+  setTimeout(function(){
+    if (!window.PIPIS_READY) banner('script.js не запустился. Проверь, что он есть в репозитории рядом с index.html и что сборка свежая.');
+  }, 1500);
+})();
+</script>
+<script>
+'use strict';
+window.PIPIS_READY = true;   // сигнал для index.html: скрипт дошёл до этой строки
+const $ = id => document.getElementById(id);
+const chatEl = $('chat'), input = $('input'), send = $('send');
 
-    function addMessage(text, type) {
-        const chat = document.getElementById('chat');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `msg ${type}`;
-        
-        // Обработка генерации файлов [[PIPIS_FILE:filename|type]]content[[/PIPIS_FILE]]
-        let processedText = text.replace(/\[\[PIPIS_FILE:(.*?)\Vert{}(.*?)\]\]([\s\S]*?)\[\[\/PIPIS_FILE\]\]/g, (match, name, mime, content) => {
-            const blob = new Blob([content], { type: mime || 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            return `<br><a class="file-btn" href="${url}" download="${name}">💾 Скачать ${name}</a>`;
-        });
+// ---------- Конфиг ----------
+const MODELS = [
+  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: 'Быстрая и умная, по умолчанию' },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', desc: 'Самая лёгкая и быстрая' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Запасная' }
+];
+const DEFAULT_MODEL = MODELS[0].id;
+const DEFAULT_IMG_MODEL = 'gemini-3.1-flash-image';
+const DEFAULT_MAX = 1500;
+const DEFAULT_BASE = 'https://generativelanguage.googleapis.com';
+const DEFAULT_SYS = 'Ты — Pipis AI, умный, быстрый и дерзкий ИИ-ассистент, созданный компанией Pipis-AFC. Отвечай чётко, по делу и с лёгким харизматичным юмором, без лишней «воды».';
+const FREE_STYLE = 'Ты — Pipis AI. Тебе разрешено выражаться абсолютно свободно, использовать крепкие выражения, острый сленг и нецензурную лексику, если того требует контекст или просит пользователь. Будь максимально дерзким и без фильтров!';
+const NO_LATEX = 'НИКОГДА не используй LaTeX и знаки доллара ($) для оформления математических формул и примеров. Пиши все примеры, цифры и действия простым понятным текстом (например: 4 + 8 * 5 = 44).';
+const FILE_RULE = 'Если пользователь просит создать файл (код, скрипт, текст, json, csv, html, конфиг и т.п.), отдай полное содержимое одним блоком кода и укажи имя файла после языка через двоеточие, например: ```python:main.py. Приложение само покажет кнопку «Скачать». Для обычных примеров кода это имя не нужно.';
+const safetySettings = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+];
+const THEMES = { mint: '#0b1312', oled: '#000000', purple: '#0e0a1a' };
+const CHATS_KEY = 'pipis_chats_v1';
+const PROFILE_STATUS = 'Локальный режим';   // задел под авторизацию: позже здесь может быть «Pipis-AFC VIP»
+const MAX_FACTS = 50;
+const MAX_DOC_CHARS = 150000;
 
-        msgDiv.innerHTML = processedText;
-        chat.appendChild(msgDiv);
-        chat.scrollTop = chat.scrollHeight;
-        return msgDiv;
+const store = {
+  get: (k, d = '') => { try { return localStorage.getItem(k) ?? d } catch { return d } },
+  set: (k, v) => { try { localStorage.setItem(k, v) } catch {} }
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const mkBtn = (label, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (cls) b.className = cls; return b };
+
+// ---------- Модель ----------
+const getModel = () => { const m = store.get('pipis_model'); return MODELS.some(x => x.id === m) ? m : DEFAULT_MODEL };
+// выбранная модель первой, остальные — запасные
+const modelChain = () => { const m = getModel(); return [m, ...MODELS.map(x => x.id).filter(id => id !== m)] };
+
+function drawModel(){
+  const cur = MODELS.find(m => m.id === getModel());
+  $('modelName').textContent = cur.name;
+  const menu = $('modelMenu'); menu.innerHTML = '';
+  for (const m of MODELS) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'model-opt';
+    b.setAttribute('role', 'option'); b.setAttribute('aria-selected', String(m.id === cur.id));
+    b.innerHTML = '<span class="mo-text"><span class="mo-name"></span><span class="mo-desc"></span></span><span class="mo-check">✓</span>';
+    b.querySelector('.mo-name').textContent = m.name; b.querySelector('.mo-desc').textContent = m.desc;
+    b.onclick = () => { store.set('pipis_model', m.id); drawModel(); toggleModelMenu(false) };
+    menu.append(b);
+  }
+}
+function toggleModelMenu(open){
+  const menu = $('modelMenu'); const o = open ?? menu.hidden;
+  menu.hidden = !o; $('modelBtn').setAttribute('aria-expanded', String(o));
+}
+$('modelBtn').onclick = e => { e.stopPropagation(); toggleModelMenu() };
+document.addEventListener('click', e => { if (!e.target.closest('.modelbar')) toggleModelMenu(false) });
+
+// ---------- Профиль ----------
+const getProfile = () => { try { return JSON.parse(store.get('pipis_profile', '{}')) || {} } catch { return {} } };
+const userName = () => (getProfile().name || '').trim();
+function drawProfile(){
+  const n = userName() || 'Гость';
+  $('pname').textContent = n; $('avatar').textContent = [...n][0].toUpperCase(); $('pstat').textContent = PROFILE_STATUS;
+}
+
+// ---------- Память (факты) ----------
+let facts = [];   // [{id, text}]
+function saveFacts(){ store.set('pipis_facts', JSON.stringify(facts)); updateMemCount() }
+function loadFacts(){
+  try { const d = JSON.parse(store.get('pipis_facts', '[]')); if (Array.isArray(d)) facts = d.filter(f => f && typeof f.text === 'string' && f.text.trim()) } catch {}
+  const old = store.get('pipis_about').trim();   // старое поле «Обо мне» превращаем в первый факт
+  if (old) { if (!facts.length) facts.push({ id: uid(), text: old.slice(0, 2000) }); store.set('pipis_about', ''); saveFacts() }
+}
+function updateMemCount(){
+  $('memCount').textContent = facts.length;
+  $('openMem').textContent = 'Управлять памятью (' + facts.length + ')';
+}
+function renderMem(){
+  const list = $('memList'); list.innerHTML = '';
+  if (!facts.length) { list.innerHTML = '<p class="mem-empty">Пока ничего. Добавь факт о себе, и Pipis AI будет помнить его в любом чате.</p>'; return }
+  for (const f of facts) {
+    const row = document.createElement('div'); row.className = 'mem-item';
+    const t = document.createElement('span'); t.textContent = f.text;
+    const del = mkBtn('×'); del.setAttribute('aria-label', 'Удалить факт');
+    del.onclick = () => { facts = facts.filter(x => x.id !== f.id); saveFacts(); renderMem() };
+    row.append(t, del); list.append(row);
+  }
+}
+function addFact(){
+  const text = $('memInput').value.trim();
+  if (!text) return;
+  if (facts.length >= MAX_FACTS) { alert('Максимум ' + MAX_FACTS + ' фактов. Удали ненужные.'); return }
+  facts.push({ id: uid(), text }); saveFacts(); renderMem(); $('memInput').value = ''; $('memInput').focus();
+}
+function openMem(){ closeDrawer(); renderMem(); $('dlgMem').showModal() }
+$('memAdd').onclick = addFact;
+$('memInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addFact() } });
+$('memBtn').onclick = openMem;
+$('openMem').onclick = openMem;
+
+// ---------- IndexedDB: сгенерированные картинки (в localStorage они не влезут) ----------
+const idb = {
+  db: null,
+  open(){ return this.db || (this.db = new Promise((res, rej) => {
+    const r = indexedDB.open('pipis', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('img');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  })) },
+  async put(k, v){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('img', 'readwrite'); t.objectStore('img').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error) }) },
+  async get(k){ const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction('img').objectStore('img').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error) }) },
+  async del(k){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('img', 'readwrite'); t.objectStore('img').delete(k); t.oncomplete = res; t.onerror = () => rej(t.error) }) }
+};
+
+// ---------- Состояние и хранение чатов ----------
+// chat = { id, title, ts, messages: [{ role, text, files:[{name}], docs:[{name,text}], imgs:[id], inline:[только в памяти] }] }
+let chats = [];
+let activeId = null;
+let pending = [];   // вложения {name, mime, data | text, kind, preview}
+let busy = false;
+const active = () => chats.find(c => c.id === activeId);
+
+function newChat(){
+  const empty = chats.find(c => !c.messages.length);   // пустой чат не плодим
+  if (empty) { activeId = empty.id; return empty }
+  const c = { id: uid(), title: 'Новый чат', ts: Date.now(), messages: [] };
+  chats.push(c); activeId = c.id; return c;
+}
+function save(){
+  // base64 фото и видео в localStorage не кладём; текстовые файлы и id картинок — кладём
+  let list = chats.filter(c => c.messages.length).map(c => ({
+    id: c.id, title: c.title, ts: c.ts,
+    messages: c.messages.map(m => ({ role: m.role, text: m.text, files: (m.files || []).map(f => ({ name: f.name })), docs: m.docs, imgs: m.imgs }))
+  }));
+  const data = () => JSON.stringify({ activeId: active()?.messages.length ? activeId : null, chats: list });
+  for (;;) {
+    try { localStorage.setItem(CHATS_KEY, data()); return }
+    catch { if (list.length <= 1) return; list.sort((a, b) => a.ts - b.ts); list.shift() }   // нет места — выкидываем самый старый
+  }
+}
+function load(){
+  try {
+    const d = JSON.parse(store.get(CHATS_KEY, 'null'));
+    if (d && Array.isArray(d.chats)) {
+      chats = d.chats.filter(c => c && c.id && Array.isArray(c.messages));
+      activeId = d.activeId;
     }
+  } catch {}
+  if (!active()) {
+    const last = [...chats].sort((a, b) => b.ts - a.ts)[0];
+    if (last) activeId = last.id; else newChat();
+  }
+}
+// вся переписка с ролями user/model — именно она уходит в Gemini при каждом сообщении
+function toContents(msgs){
+  return msgs.map(m => {
+    const parts = [];
+    if (m.inline?.length) parts.push(...m.inline);
+    const docNames = new Set((m.docs || []).map(d => d.name));
+    const lost = (m.files || []).filter(f => !docNames.has(f.name));
+    if (!m.inline?.length && lost.length) parts.push({ text: '[Пользователь прикрепил файлы: ' + lost.map(f => f.name).join(', ') + ' — содержимое недоступно]' });
+    for (const d of m.docs || []) parts.push({ text: '[Файл «' + d.name + '»]\n' + d.text + '\n[Конец файла]' });
+    if (m.text) parts.push({ text: m.text });
+    else if (m.imgs?.length) parts.push({ text: '[Pipis AI сгенерировал изображение]' });
+    if (!parts.length) parts.push({ text: ' ' });
+    return { role: m.role, parts };
+  });
+}
 
-    async function sendMsg() {
-        const input = document.getElementById('userInput');
-        const prompt = input.value.trim();
-        if (!prompt) return;
+// ---------- Markdown ----------
+function unlatex(s){
+  const fix = t => t.replace(/\\times/g,'×').replace(/\\cdot/g,'·').replace(/\\div/g,'÷').replace(/\\pm/g,'±')
+    .replace(/\\leq?/g,'≤').replace(/\\geq?/g,'≥').replace(/\\neq/g,'≠').replace(/\\approx/g,'≈')
+    .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'($1)/($2)').replace(/\\sqrt\{([^{}]*)\}/g,'√($1)')
+    .replace(/\\text\{([^{}]*)\}/g,'$1').replace(/\^\{([^{}]*)\}/g,'^$1').replace(/[{}]/g,'').replace(/\\,/g,' ').trim();
+  return s.replace(/\$\$([\s\S]+?)\$\$/g,(_,m)=>fix(m))
+    .replace(/\\\[([\s\S]+?)\\\]/g,(_,m)=>fix(m))
+    .replace(/\\\(([\s\S]+?)\\\)/g,(_,m)=>fix(m))
+    .replace(/\$([^$\n]+)\$/g,(a,m)=>/[\\^_{}]/.test(m)?fix(m):a);
+}
+function inline(s){ // вход уже экранирован
+  return s
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+}
+// «python:main.py» → язык + имя файла; «main.py» → имя файла; «js» → только язык
+function parseInfo(info){
+  info = info.trim(); let lang = info, name = '';
+  const i = info.indexOf(':');
+  if (i > 0) { lang = info.slice(0, i).trim(); name = info.slice(i + 1).trim() }
+  else if (/^[\w\-. ]+\.\w{1,8}$/.test(info)) { name = info; lang = info.split('.').pop() }
+  name = name.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+  return { lang, name };
+}
+function md(src){
+  const blocks = [];
+  const put = (info, code) => { blocks.push({ ...parseInfo(info), code }); return '\n\u0001' + (blocks.length - 1) + '\u0001\n' };
+  let text = src.replace(/```([^\n`]*)\n([\s\S]*?)```/g, (_, info, code) => put(info, code.replace(/\n$/, '')));
+  const open = text.indexOf('```');   // блок ещё не закрыт: идёт стриминг
+  if (open >= 0) {
+    const rest = text.slice(open + 3), nl = rest.indexOf('\n');
+    text = text.slice(0, open) + put(nl >= 0 ? rest.slice(0, nl) : rest, nl >= 0 ? rest.slice(nl + 1) : '');
+  }
+  text = esc(unlatex(text));
+  let html = '', list = null;
+  const close = () => { if (list) { html += '</' + list + '>'; list = null } };
+  for (const raw of text.split('\n')) {
+    const ln = raw.trimEnd();
+    let m;
+    if ((m = ln.match(/^\u0001(\d+)\u0001$/))) {
+      close();
+      const b = blocks[+m[1]];
+      html += `<div class="code"><div class="code-head"><span class="lang">${esc(b.lang || 'code')}</span>`
+        + (b.name ? `<span class="fname">${esc(b.name)}</span>` : '')
+        + `<span class="spacer"></span><button class="copy" type="button">Копировать</button>`
+        + (b.name ? `<button class="dl" type="button" data-name="${esc(b.name)}">Скачать</button>` : '')
+        + `</div><pre><code>${esc(b.code)}</code></pre></div>`;
+      continue;
+    }
+    if (!ln.trim()) { close(); continue }
+    if ((m = ln.match(/^#{1,6}\s+(.*)$/))) { close(); html += `<h3>${inline(m[1])}</h3>`; continue }
+    if ((m = ln.match(/^\s*[-*]\s+(.*)$/))) { if (list !== 'ul') { close(); html += '<ul>'; list = 'ul' } html += `<li>${inline(m[1])}</li>`; continue }
+    if ((m = ln.match(/^\s*\d+[.)]\s+(.*)$/))) { if (list !== 'ol') { close(); html += '<ol>'; list = 'ol' } html += `<li>${inline(m[1])}</li>`; continue }
+    if ((m = ln.match(/^&gt;\s?(.*)$/))) { close(); html += `<blockquote>${inline(m[1])}</blockquote>`; continue }
+    close();
+    html += `<p>${inline(ln)}</p>`;
+  }
+  close();
+  return html;
+}
 
-        addMessage(prompt, 'user');
-        input.value = '';
+// ---------- Сохранение файлов и копирование ----------
+const isNative = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+async function exportFile(name, mime, b64){
+  if (isNative()) {   // в APK: пишем файл в кэш и открываем системное «Поделиться / Сохранить»
+    const P = Capacitor.Plugins || {};
+    if (P.Filesystem && P.Share) {
+      try {
+        const w = await P.Filesystem.writeFile({ path: name, data: b64, directory: 'CACHE' });
+        await P.Share.share({ title: name, url: w.uri, dialogTitle: 'Сохранить или отправить' });
+        return;
+      } catch (e) { if (/cancel/i.test(String(e?.message || e))) return }
+    }
+  }
+  const bin = atob(b64), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([u8], { type: mime }));
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+const MIMES = { json: 'application/json', html: 'text/html', css: 'text/css', js: 'text/javascript', md: 'text/markdown', csv: 'text/csv', xml: 'text/xml', py: 'text/x-python' };
+function downloadText(name, text){
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  return exportFile(name, MIMES[ext] || 'text/plain', btoa(unescape(encodeURIComponent(text))));
+}
+function downloadDataUrl(src, name){
+  const m = src.match(/^data:([^;,]+);base64,(.*)$/);
+  if (m) return exportFile(name, m[1], m[2]);
+}
+const extOf = src => { const m = (src.match(/^data:image\/(\w+)/) || [])[1]; return m === 'jpeg' ? 'jpg' : (m || 'png') };
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); return true } catch {}
+  try {
+    const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.append(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok;
+  } catch { return false }
+}
 
-        if (prompt.startsWith('/img ')) {
-            const imgPrompt = prompt.replace('/img ', '');
-            const loadingMsg = addMessage('Генерирую картинку...', 'ai');
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        instances: [{ prompt: imgPrompt }],
-                        parameters: { sampleCount: 1, aspectRatio: "1:1" }
-                    })
-                });
-                const data = await res.json();
-                if (data.predictions && data.predictions[0]) {
-                    const b64 = data.predictions[0].bytesBase64Encoded;
-                    loadingMsg.innerHTML = `<img class="img-result" src="data:image/png;base64,${b64}">`;
-                } else {
-                    loadingMsg.className = 'msg ai error';
+// ---------- Просмотр картинки ----------
+let lbCur = null;
+function openLightbox(src, name){ lbCur = { src, name }; $('lbImg').src = src; $('lightbox').hidden = false }
+function closeLightbox(){ $('lightbox').hidden = true; $('lbImg').removeAttribute('src') }
+$('lbClose').onclick = closeLightbox;
+$('lbDl').onclick = () => lbCur && downloadDataUrl(lbCur.src, lbCur.name);
+$('lightbox').onclick = e => { if (e.target.id === 'lightbox') closeLightbox() };
+
+// ---------- Отрисовка чата ----------
+let stick = true;   // липнем к низу, пока пользователь сам не пролистал вверх
+const scrollDown = () => { if (stick) chatEl.scrollTop = chatEl.scrollHeight };
+chatEl.addEventListener('scroll', () => { stick = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 80 }, { passive: true });
+
+function clearEmpty(){ if (chatEl.querySelector('.empty')) chatEl.innerHTML = '' }
+function chipEl(name, onRemove){
+  const s = document.createElement('span'); s.className = 'chip';
+  const n = document.createElement('span'); n.textContent = '📎 ' + name; s.append(n);
+  if (onRemove) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Убрать файл');
+    b.onclick = onRemove; s.append(b);
+  }
+  return s;
+}
+function addUser(text, files, still){
+  clearEmpty();
+  const d = document.createElement('div'); d.className = 'msg user' + (still ? ' still' : '');
+  const docs = files.filter(f => !f.preview);
+  files.filter(f => f.preview).forEach(f => { const im = new Image(); im.className = 'att'; im.src = f.preview; im.alt = f.name; im.onload = scrollDown; d.append(im) });
+  if (docs.length) { const c = document.createElement('div'); c.className = 'chips'; docs.forEach(f => c.append(chipEl(f.name))); d.append(c) }
+  if (text) { const t = document.createElement('div'); t.textContent = text; d.append(t) }
+  chatEl.append(d); scrollDown();
+}
+function addBot(){
+  clearEmpty();
+  const d = document.createElement('div'); d.className = 'msg bot';
+  d.innerHTML = '<div class="content"><div class="typing" aria-label="Pipis AI печатает"><span></span><span></span><span></span></div></div>';
+  chatEl.append(d); scrollDown(); return d;
+}
+function imgBlock(src, name){
+  const w = document.createElement('div'); w.className = 'imgwrap';
+  const im = new Image(); im.className = 'gen'; im.src = src; im.alt = name; im.onload = scrollDown; im.onclick = () => openLightbox(src, name);
+  const row = document.createElement('div'); row.className = 'imgbtns';
+  const o = mkBtn('Открыть во весь экран'); o.onclick = () => openLightbox(src, name);
+  const d = mkBtn('Скачать'); d.onclick = () => downloadDataUrl(src, name);
+  row.append(o, d); w.append(im, row); return w;
+}
+function addBotStatic(m){
+  const d = document.createElement('div'); d.className = 'msg bot still';
+  const c = document.createElement('div'); c.className = 'content'; c.innerHTML = m.text ? md(m.text) : ''; d.append(c);
+  for (const id of m.imgs || []) {
+    const ph = document.createElement('div'); ph.className = 'imgph'; ph.textContent = 'Загружаю изображение…'; c.append(ph);
+    idb.get(id).then(url => { if (url) ph.replaceWith(imgBlock(url, 'pipis-' + id + '.' + extOf(url))); else ph.textContent = 'Изображение недоступно' })
+      .catch(() => { ph.textContent = 'Изображение недоступно' });
+  }
+  chatEl.append(d);
+}
+const setText = (bot, text) => { bot.querySelector('.content').innerHTML = md(text); scrollDown() };
+
+function empty(){
+  chatEl.innerHTML = `<div class="empty">
+    <h2>Привет, я Pipis AI</h2>
+    <p>Напиши сообщение, прикрепи файл или попроси нарисовать картинку</p>
+    <div class="sugg">
+      <button type="button" data-s="Объясни, как работает фотосинтез простыми словами">Объясни фотосинтез простыми словами</button>
+      <button type="button" data-s="Помоги составить план на неделю с учёбой и тренировками">Составить план на неделю</button>
+      <button type="button" data-s="/img кот-космонавт на Луне, неоновый стиль">Нарисуй кота-космонавта</button>
+    </div></div>`;
+}
+function renderChat(){
+  chatEl.innerHTML = '';
+  const c = active();
+  if (!c || !c.messages.length) { empty(); return }
+  c.messages.forEach(m => m.role === 'user' ? addUser(m.text, m.files || [], true) : addBotStatic(m));
+  stick = true; chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+// ---------- Боковая панель ----------
+const openDrawer = () => { renderList(); document.body.classList.add('drawer-open'); $('drawer').setAttribute('aria-hidden', 'false') };
+const closeDrawer = () => { document.body.classList.remove('drawer-open'); $('drawer').setAttribute('aria-hidden', 'true') };
+const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
+function renderList(){
+  const list = $('chatList'); list.innerHTML = '';
+  const items = chats.filter(c => c.messages.length).sort((a, b) => b.ts - a.ts);
+  if (!items.length) { list.innerHTML = '<p class="list-empty">Пока пусто. Начни диалог.</p>'; return }
+  for (const c of items) {
+    const row = document.createElement('div'); row.className = 'chat-item' + (c.id === activeId ? ' active' : '');
+    const open = document.createElement('button'); open.type = 'button'; open.className = 'chat-open'; open.textContent = c.title;
+    open.onclick = () => openChat(c.id);
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'chat-del';
+    del.setAttribute('aria-label', 'Удалить чат «' + c.title + '»'); del.innerHTML = TRASH;
+    del.onclick = e => { e.stopPropagation(); deleteChat(c.id) };
+    row.append(open, del); list.append(row);
+  }
+}
+function switchedChat(){
+  pending = []; drawPending(); input.value = ''; autoGrow(); stick = true;
+  renderChat(); renderList(); save();
+}
+function openChat(id){ if (id !== activeId) { activeId = id; switchedChat() } closeDrawer() }
+function createChat(){ newChat(); switchedChat(); closeDrawer() }
+function deleteChat(id){
+  const c = chats.find(x => x.id === id);
+  if (!c || !confirm('Удалить чат «' + c.title + '»?')) return;
+  c.messages.forEach(m => (m.imgs || []).forEach(k => idb.del(k).catch(() => {})));
+  chats = chats.filter(x => x.id !== id);
+  if (id === activeId) {
+    const last = [...chats].filter(x => x.messages.length).sort((a, b) => b.ts - a.ts)[0];
+    if (last) activeId = last.id; else newChat();
+    switchedChat();
+  } else { renderList(); save() }
+}
+$('menu').onclick = openDrawer;
+$('newChat').onclick = openDrawer;
+$('closeMenu').onclick = closeDrawer;
+$('scrim').onclick = closeDrawer;
+$('createChat').onclick = createChat;
+$('profile').onclick = () => openSettings();
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  closeDrawer(); toggleModelMenu(false); if (!$('lightbox').hidden) closeLightbox();
+});
+
+// ---------- Настройки и темы ----------
+function applyTheme(t){
+  if (!THEMES[t]) t = 'mint';
+  document.documentElement.dataset.theme = t;
+  document.querySelector('meta[name="theme-color"]').content = THEMES[t];
+  document.querySelectorAll('.theme').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === t)));
+  store.set('pipis_theme', t);
+}
+document.querySelectorAll('.theme').forEach(b => b.onclick = () => applyTheme(b.dataset.theme));
+function openSettings(){
+  closeDrawer();
+  $('key').value = store.get('pipis_key');
+  $('uname').value = userName();
+  $('sys').value = store.get('pipis_sys') || DEFAULT_SYS;
+  $('max').value = store.get('pipis_max', DEFAULT_MAX);
+  $('imgModel').value = store.get('pipis_imgmodel') || '';
+  $('base').value = store.get('pipis_base') || DEFAULT_BASE;
+  updateMemCount();
+  applyTheme(store.get('pipis_theme', 'mint'));
+  $('dlg').showModal();
+}
+$('settings').onclick = openSettings;
+$('dlgForm').onsubmit = e => {
+  if (e.submitter?.value !== 'ok') return;
+  store.set('pipis_key', $('key').value.trim());
+  store.set('pipis_profile', JSON.stringify({ name: $('uname').value.trim() }));
+  store.set('pipis_sys', $('sys').value.trim());
+  store.set('pipis_max', $('max').value.trim() || DEFAULT_MAX);
+  store.set('pipis_imgmodel', $('imgModel').value.trim());
+  const base = $('base').value.trim().replace(/\/+$/, '');
+  store.set('pipis_base', base === DEFAULT_BASE ? '' : base);
+  drawProfile();
+};
+
+// ---------- Вложения и поле ввода ----------
+function drawPending(){
+  const p = $('pending'); p.innerHTML = '';
+  pending.forEach((f, i) => {
+    const remove = () => { pending.splice(i, 1); drawPending(); autoGrow() };
+    if (!f.preview) { p.append(chipEl(f.name, remove)); return }
+    const t = document.createElement('div'); t.className = 'thumb';
+    const im = new Image(); im.src = f.preview; im.alt = f.name;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Убрать фото ' + f.name); b.onclick = remove;
+    t.append(im, b); p.append(t);
+  });
+}
+function readFile(f){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res({ name: f.name, mime: f.type || 'application/octet-stream', data: r.result.split(',')[1] });
+    r.onerror = () => rej(new Error('Не смог прочитать ' + f.name));
+    r.readAsDataURL(f);
+  });
+}
+function readText(f){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = () => rej(new Error('Не смог прочитать ' + f.name));
+    r.readAsText(f);
+  });
+}
+// фото: уменьшаем до 1600px и жмём в JPEG — быстрее уходит и не упирается в лимит запроса
+async function prepImage(f){
+  if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 400 * 1024) return readFile(f);
+  try {
+    const bmp = await createImageBitmap(f);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close?.();
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .85));
+    if (!blob) return readFile(f);
+    return await readFile(new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
+  } catch { return readFile(f) }
+}
+// всё, что похоже на текст или код, читаем как текст и кладём прямо в запрос
+const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|jsonl|js|mjs|cjs|jsx|ts|tsx|py|html|htm|css|scss|less|xml|svg|yml|yaml|toml|ini|cfg|conf|env|log|sql|sh|bash|bat|ps1|java|kt|kts|swift|c|h|cpp|hpp|cc|cs|go|rs|php|rb|lua|dart|vue|svelte|gradle|properties|tex)$/i;
+const isTextFile = f => TEXT_EXT.test(f.name) || /^text\//.test(f.type) || /json|xml|javascript|x-sh|yaml/.test(f.type);
+async function addFiles(list){
+  for (const f of list) {
+    try {
+      if (isTextFile(f)) {
+        if (f.size > 2 * 1024 * 1024) { alert('Текстовый файл «' + f.name + '» больше 2 МБ'); continue }
+        let t = await readText(f), cut = false;
+        if (t.length > MAX_DOC_CHARS) { t = t.slice(0, MAX_DOC_CHARS); cut = true }
+        pending.push({ name: f.name, mime: 'text/plain', kind: 'text', text: t + (cut ? '\n…[файл обрезан]' : '') });
+      } else if (/^(image|audio|video)\//.test(f.type) || f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+        if (f.size > 15 * 1024 * 1024) { alert('Файл «' + f.name + '» больше 15 МБ'); continue }
+        const it = f.type.startsWith('image/') ? await prepImage(f) : await readFile(f);
+        if (/\.pdf$/i.test(f.name) && it.mime === 'application/octet-stream') it.mime = 'application/pdf';
+        if (it.mime.startsWith('image/')) it.preview = 'data:' + it.mime + ';base64,' + it.data;
+        pending.push(it);
+      } else { alert('Формат файла «' + f.name + '» не поддерживается. Подходят: фото, PDF, аудио, видео, текст и код.'); continue }
+      drawPending(); autoGrow();
+    } catch (err) { alert(err.message) }
+  }
+}
+function autoGrow(){
+  input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+  send.disabled = busy || (!input.value.trim() && !pending.length);
+}
+$('attach').onclick = () => $('file').click();            // accept="image/*": на телефоне предложит галерею или камеру
+$('attachDoc').onclick = () => $('fileDoc').click();
+for (const id of ['file', 'fileDoc']) {
+  $(id).onchange = async e => { const list = [...e.target.files]; e.target.value = ''; await addFiles(list) };
+}
+input.addEventListener('input', autoGrow);
+input.addEventListener('focus', () => setTimeout(scrollDown, 300));
+const isDesktop = matchMedia('(hover: hover) and (pointer: fine)').matches;
+input.addEventListener('keydown', e => {
+  if (isDesktop && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('form').requestSubmit() }
+});
+chatEl.addEventListener('click', async e => {
+  const sg = e.target.closest('.sugg button');
+  if (sg) { input.value = sg.dataset.s; autoGrow(); $('form').requestSubmit(); return }
+  const cp = e.target.closest('.copy');
+  if (cp) {
+    const ok = await copyText(cp.closest('.code').querySelector('code').textContent);
+    cp.textContent = ok ? 'Скопировано!' : 'Не вышло'; setTimeout(() => cp.textContent = 'Копировать', 1800);
+    return;
+  }
+  const dl = e.target.closest('.dl');
+  if (dl) downloadText(dl.dataset.name, dl.closest('.code').querySelector('code').textContent);
+});
+
+// ---------- Сеть: повторы + запасные модели ----------
+function apiBase(){ return (store.get('pipis_base') || DEFAULT_BASE).trim().replace(/\/+$/, '') }
+function proxyHint(){
+  if (apiBase() === DEFAULT_BASE) return '';
+  try { return ' (прокси: ' + new URL(apiBase()).host + ')' } catch { return ' (прокси: ' + apiBase() + ')' }
+}
+function buildBody(model, thinking, c){
+  const body = {
+    contents: toContents(c.messages),     // вся переписка → у Pipis AI есть память диалога
+    safetySettings,
+    generationConfig: { maxOutputTokens: Math.max(100, parseInt(store.get('pipis_max', DEFAULT_MAX)) || DEFAULT_MAX) }
+  };
+  // у Gemini 3 по умолчанию «среднее» мышление, это главный тормоз — ставим low
+  if (thinking && model.startsWith('gemini-3')) body.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+  let sys = (store.get('pipis_sys') || DEFAULT_SYS) + '\n\n' + FREE_STYLE;
+  const name = userName();
+  if (name) sys += '\n\nПользователя зовут ' + name + '.';
+  if (facts.length) sys += '\n\nПамять о пользователе (учитывай всегда, в любом чате, но не пересказывай без нужды):\n' + facts.map(f => '- ' + f.text).join('\n');
+  sys += '\n\n' + FILE_RULE + '\n\n' + NO_LATEX;
+  body.systemInstruction = { parts: [{ text: sys }] };
+  return body;
+}
+async function callWithRetry(model, body, key, endpoint = ':streamGenerateContent?alt=sse'){
+  const url = apiBase() + '/v1beta/models/' + encodeURIComponent(model) + endpoint;
+  for (let i = 0; ; i++) {
+    let r = null;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(body)
+      });
+    } catch { r = null }                       // нет сети
+    if (r && r.ok) return r;
+    const status = r ? r.status : 0;
+    if ([0, 429, 500, 503, 504].includes(status) && i < 2) { await sleep(1800); continue }   // до 2 повторов
+    let msg = r ? `${r.status} ${r.statusText}` : 'нет связи с сервером' + proxyHint();
+    if (r) { try { msg = (await r.json()).error.message } catch {} }
+    const err = new Error(msg); err.status = status; throw err;
+  }
+}
+async function generate(key, c){
+  let lastErr;
+  for (const model of modelChain()) {
+    try {
+      try { return await callWithRetry(model, buildBody(model, true, c), key) }
+      catch (err) {
+        // модель не приняла thinkingConfig — повторяем без него
+        if (err.status === 400 && /think/i.test(err.message)) return await callWithRetry(model, buildBody(model, false, c), key);
+        throw err;
+      }
+    } catch (err) {
+      lastErr = err;
+      // ключ/запрос неверны — смена модели не поможет; снятая с поддержки модель — идём к следующей
+      if (![0, 404, 429, 500, 503, 504].includes(err.status) && !/no longer available|not found|deprecated/i.test(err.message)) throw err;
+    }
+  }
+  throw lastErr;
+}
+
+// ---------- Отправка ----------
+function isImageRequest(t){
+  return /^\/img(\s|$)/i.test(t)
+    || /^нарисуй/i.test(t)
+    || /^(сгенерируй|создай|сделай|generate|draw|create|make)[^.!?\n]{0,40}(картинк|изображени|фото|рисунок|рисунк|иллюстраци|арт|аватар|логотип|постер|image|picture|photo|illustration|logo)/i.test(t);
+}
+async function runChat(c, key, bot){
+  let full = '', finish = '';
+  const res = await generate(key, c);
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  bot.querySelector('.content').innerHTML = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const ln of lines) {
+      if (!ln.startsWith('data:')) continue;
+      try {
+        const j = JSON.parse(ln.slice(5));
+        const cand = j.candidates?.[0];
+        for (const p of cand?.content?.parts || []) if (p.text) full += p.text;
+        if (cand?.finishReason) finish = cand.finishReason;
+        if (full && bot.isConnected) setText(bot, full);
+      } catch {}
+    }
+  }
+  if (!full) throw new Error('Пустой ответ (возможно, сработал фильтр безопасности).');
+  if (chats.includes(c)) { c.messages.push({ role: 'model', text: full }); c.ts = Date.now(); save(); renderList() }
+  if (!bot.isConnected && activeId === c.id) renderChat();   // пока шла генерация, чат переключали туда-обратно
+  else if (finish === 'MAX_TOKENS' && bot.isConnected) {
+    const m = document.createElement('div'); m.className = 'meta';
+    m.textContent = 'Ответ обрезан лимитом длины. Напиши «продолжи» или увеличь лимит в настройках.'; bot.append(m);
+  }
+}
+async function runImage(c, text, bin, key, bot){
+  const prompt = text.replace(/^\/img\s*/i, '').trim();
+  if (!prompt) throw new Error('Опиши, что нарисовать, например: /img кот в скафандре');
+  const model = (store.get('pipis_imgmodel') || DEFAULT_IMG_MODEL).trim();
+  let body, endpoint;
+  if (/^imagen/i.test(model)) {
+    endpoint = ':predict'; body = { instances: [{ prompt }], parameters: { sampleCount: 1 } };
+  } else {
+    endpoint = ':generateContent';
+    const refs = bin.filter(f => f.mime.startsWith('image/')).map(f => ({ inline_data: { mime_type: f.mime, data: f.data } }));
+    body = { contents: [{ role: 'user', parts: [...refs, { text: prompt }] }], safetySettings, generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } };
+  }
+  const j = await (await callWithRetry(model, body, key, endpoint)).json();
+  const urls = []; let caption = '';
+  for (const p of j.predictions || []) if (p.bytesBase64Encoded) urls.push('data:' + (p.mimeType || 'image/png') + ';base64,' + p.bytesBase64Encoded);
+  for (const p of j.candidates?.[0]?.content?.parts || []) {
+    if (p.text) caption += p.text;
+    const d = p.inlineData || p.inline_data;
+    if (d?.data) urls.push('data:' + (d.mimeType || d.mime_type || 'image/png') + ';base64,' + d.data);
+  }
+  if (!urls.length) throw new Error(caption ? 'Модель не вернула картинку: ' + caption.slice(0, 300) : 'Модель не вернула картинку (возможно, сработал фильтр безопасности).');
+  const ids = [];
+  for (const u of urls) { const id = uid(); try { await idb.put(id, u); ids.push(id) } catch {} }
+  caption = caption.trim();
+  if (chats.includes(c)) { c.messages.push({ role: 'model', text: caption || (ids.length ? '' : '[изображение]'), imgs: ids }); c.ts = Date.now(); save(); renderList() }
+  if (bot.isConnected) {
+    const cont = bot.querySelector('.content'); cont.innerHTML = caption ? md(caption) : '';
+    urls.forEach((u, i) => cont.append(imgBlock(u, 'pipis-image-' + (i + 1) + '.' + extOf(u))));
+    scrollDown();
+  } else if (activeId === c.id) renderChat();
+}
+
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (busy || (!text && !pending.length)) return;
+  const key = store.get('pipis_key');
+  if (!key) { openSettings(); return }
+
+  const c = active();
+  const files = pending; pending = []; drawPending();
+  input.value = ''; busy = true; autoGrow();
+
+  const bin = files.filter(f => f.kind !== 'text'), docs = files.filter(f => f.kind === 'text');
+  const userMsg = {
+    role: 'user', text,
+    files: files.map(f => ({ name: f.name, mime: f.mime, preview: f.mime.startsWith('image/') ? f.preview : undefined })),
+    docs: docs.map(d => ({ name: d.name, text: d.text })),
+    inline: bin.map(f => ({ inline_data: { mime_type: f.mime, data: f.data } }))
+  };
+  c.messages.push(userMsg);
+  if (c.messages.length === 1) c.title = (text || files[0].name).replace(/\s+/g, ' ').slice(0, 40);
+  c.ts = Date.now();
+  save(); renderList();
+  stick = true; addUser(text, userMsg.files);
+
+  const bot = addBot();
+  try {
+    if (text && isImageRequest(text)) await runImage(c, text, bin, key, bot);
+    else await runChat(c, key, bot);
+  } catch (err) {
+    const i = c.messages.indexOf(userMsg); if (i >= 0) c.messages.splice(i, 1);   // неудавшееся сообщение из истории убираем
+    save(); renderList();
+    if (bot.isConnected) {
+      bot.classList.add('err');
+      bot.querySelector('.content').textContent = 'Ошибка: ' + err.message;
+    }
+    if (activeId === c.id) { input.value = text; pending = [...files, ...pending]; drawPending() }   // текст и вложения возвращаем, чтобы не перепечатывать
+  } finally {
+    busy = false; autoGrow(); input.focus();
+  }
+};
+
+// ---------- Клавиатура на мобилках ----------
+function fitViewport(){
+  const raw = window.visualViewport ? visualViewport.height : innerHeight;
+  // в WebView на старте высота может прийти нулевой или огромной: тогда не трогаем CSS-значение по умолчанию
+  if (raw > 200 && raw < 4000) document.documentElement.style.setProperty('--vh', raw + 'px');
+  scrollDown();
+}
+window.visualViewport?.addEventListener('resize', fitViewport);
+window.visualViewport?.addEventListener('scroll', fitViewport);
+window.addEventListener('resize', fitViewport);
+
+// ---------- Старт ----------
+applyTheme(store.get('pipis_theme', 'mint'));
+loadFacts();
+load();
+drawProfile();
+drawModel();
+updateMemCount();
+renderChat();
+renderList();
+fitViewport();
+autoGrow();
+if (!store.get('pipis_key')) setTimeout(openSettings, 300);
+
+</script>
+</body>
+</html>
