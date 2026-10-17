@@ -1,4 +1,5 @@
 'use strict';
+window.PIPIS_READY = true;   // сигнал для index.html: скрипт дошёл до этой строки
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), input = $('input'), send = $('send');
 
@@ -19,4 +20,3 @@ const CHATS_KEY = 'pipis_chats_v1';
 const DEFAULT_BASE = 'https://generativelanguage.googleapis.com';
 
 const store = {
-  get: (k, d = '') => { try { return localStorage.getItem(k) ?? d } catch { return d } },
