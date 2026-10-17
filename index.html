@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="mint">
+<html lang="ru" data-theme="purple">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1312">
 <title>Pipis AI</title>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('pipis_theme_last')||localStorage.getItem('pipis_theme')||'mint'}catch(e){}</script>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('pipis_theme_last')||localStorage.getItem('pipis_theme')||'purple';if(localStorage.getItem('pipis_last_user'))document.documentElement.classList.add('resume')}catch(e){}</script>
 <style>
 /* ---------- Темы ---------- */
 :root{
@@ -243,6 +243,12 @@ dialog .cancel{background:transparent;border:1px solid var(--line);border-radius
 #auth{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto;
   background:radial-gradient(120% 55% at 50% -12%,rgba(var(--rgb),var(--glow)),transparent 60%),var(--bg)}
 body.locked #auth{display:flex}
+.howkey{margin:8px 0 0}
+.howkey summary{cursor:pointer;color:var(--light);font-size:13px}
+.howkey ol{margin:8px 0 0 18px;padding:0;font-size:13px;color:var(--mute);line-height:1.6}
+.howkey a{color:var(--light)}
+.auth-card select{width:100%;display:block;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+html.resume body.locked #auth{display:none}
 body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{display:none!important}
 .auth-card{width:min(380px,100%);margin:auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px 20px}
 .auth-card h2{margin:0 0 4px;text-align:center;font-size:30px;background:linear-gradient(90deg,var(--light),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -365,19 +371,31 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
   <form method="dialog" id="dlgForm">
     <h3>Настройки</h3>
 
-    <label for="key">Gemini API ключ</label>
+    <label for="key">API-ключ</label>
     <input id="key" type="password" autocomplete="off" placeholder="AIza…">
     <p class="hint">Хранится только на этом устройстве и только в твоём аккаунте.</p>
+    <details id="howKey" class="howkey">
+      <summary>Где взять ключ?</summary>
+      <ol>
+        <li>Открой <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> (нужен аккаунт Google).</li>
+        <li>Нажми «Create API key» и выбери любой проект.</li>
+        <li>Скопируй ключ (начинается с AIza…) и вставь в поле выше.</li>
+        <li>Сохрани настройки. Ключ остаётся только на этом устройстве.</li>
+      </ol>
+    </details>
 
     <label for="uname">Имя пользователя</label>
     <input id="uname" type="text" maxlength="40" autocomplete="off" placeholder="Гость">
+
+    <label for="styleSel">Как общается Pipis</label>
+    <select id="styleSel"></select>
 
     <label>Память Pipis AI</label>
     <button type="button" id="openMem" class="linkbtn">Управлять памятью (0)</button>
 
     <label for="base">Custom API Proxy URL (опционально)</label>
     <input id="base" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://generativelanguage.googleapis.com">
-    <p class="hint">Все запросы к Gemini пойдут через этот адрес. API-ключ тоже проходит через прокси, поэтому используй только свой.</p>
+    <p class="hint">Все запросы пойдут через этот адрес. API-ключ тоже проходит через прокси, поэтому используй только свой.</p>
 
     <label for="fontSel">Шрифт интерфейса</label>
     <select id="fontSel">
@@ -443,13 +461,17 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
     <input id="aLogin" type="text" maxlength="32" autocomplete="username" autocapitalize="none" spellcheck="false">
     <label for="aPass">Пароль</label>
     <input id="aPass" type="password" maxlength="128" autocomplete="current-password">
+    <div id="aStyleBox" hidden>
+      <label for="aStyle">Как с вами будет общаться Pipis?</label>
+      <select id="aStyle"></select>
+    </div>
     <div id="aConfirmBox" hidden>
       <label for="aPass2">Повтори пароль</label>
       <input id="aPass2" type="password" maxlength="128" autocomplete="new-password">
     </div>
     <p id="authErr" class="auth-err" role="alert"></p>
     <button id="authSubmit" class="create" type="submit">Войти</button>
-    <p class="hint">Аккаунты хранятся только в этом браузере или приложении. Забытый пароль восстановить нельзя.</p>
+    <p class="hint">Аккаунт хранится в облаке: чаты и настройки вернутся после переустановки. Забытый пароль восстановить нельзя. API-ключ остаётся только на устройстве.</p>
   </form>
 </div>
 
@@ -483,9 +505,11 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
 <script type="module">
 // Firebase: подключаем SDK и отдаём его обычному скрипту через window.FB
 try {
-  const { initializeApp } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js');
-  const A = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
-  const F = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+  const [{ initializeApp }, A, F] = await Promise.all([
+    import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
+    import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
+    import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
+  ]);
   const app = initializeApp({
     apiKey: "AIzaSyA35S-y_5jfDTH9hc1XbWAQvpDDp261mXI",
     authDomain: "pipis-ai.firebaseapp.com",
@@ -506,10 +530,10 @@ const chatEl = $('chat'), input = $('input'), send = $('send');
 
 // ---------- Конфиг ----------
 const MODELS = [
-  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: 'Быстрая и умная, по умолчанию' },
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: 'Самая умная, но медленнее', fallback: false },
-  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Стабильная и быстрая' },
-  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', desc: 'Самая лёгкая и дешёвая, запасная' }
+  { id: 'gemini-3.8-flash', name: 'Pipis 3.8 Flash', desc: 'Быстрая и умная, по умолчанию' },
+  { id: 'gemini-3.1-pro-preview', name: 'Pipis 3.1 Pro', desc: 'Самая умная, но медленнее', fallback: false },
+  { id: 'gemini-3.5-flash', name: 'Pipis 3.5 Flash', desc: 'Стабильная и быстрая' },
+  { id: 'gemini-3.5-flash-lite', name: 'Pipis 3.5 Flash-Lite', desc: 'Самая лёгкая, запасная' }
 ];
 const DEFAULT_MODEL = MODELS[0].id;
 // пробуем по порядку: какая модель доступна для ключа, та и работает
@@ -524,6 +548,29 @@ const DEFAULT_MAX = 1500;
 const DEFAULT_BASE = 'https://generativelanguage.googleapis.com';
 const DEFAULT_SYS = 'Ты — Pipis AI, умный, быстрый и дерзкий ИИ-ассистент, созданный компанией Pipis-AFC. Отвечай чётко, по делу и с лёгким харизматичным юмором, без лишней «воды».';
 const FREE_STYLE = 'Ты — Pipis AI. Тебе разрешено выражаться абсолютно свободно, использовать крепкие выражения, острый сленг и нецензурную лексику, если того требует контекст или просит пользователь. Будь максимально дерзким и без фильтров!';
+const BASE_SYS = 'Ты — Pipis AI, ИИ-ассистент, созданный компанией Pipis-AFC.';
+const IDENTITY = 'Тебя зовут Pipis AI, так и представляйся. Слово «Gemini» сам не упоминай. Если пользователь прямо спросит, на какой технологии ты работаешь, отвечай честно: Pipis AI построен на моделях Google.';
+const STYLES = [
+  { id: 'rude', label: 'Грубо, с нецензурной лексикой', prompt: 'Общайся грубо и дерзко, с нецензурной лексикой и крепким сленгом, без фильтров.' },
+  { id: 'brisk', label: 'Энергично, без лишней информации', prompt: 'Отвечай энергично и коротко: сразу к сути, без вступлений, оговорок и лишней информации.' },
+  { id: 'detailed', label: 'Подробно отвечать на мои вопросы', prompt: 'Давай подробные развёрнутые ответы на заданные вопросы: объясняй причины, приводи примеры и детали.' },
+  { id: 'polite', label: 'Уважительно', prompt: 'Общайся уважительно и вежливо, на «вы», спокойным тоном.' },
+  { id: 'friendly', label: 'Дружелюбно, с юмором', prompt: 'Общайся тепло и дружелюбно, с лёгким юмором и живой разговорной речью.' },
+  { id: 'teacher', label: 'Как учитель: просто и по шагам', prompt: 'Объясняй как терпеливый учитель: простыми словами, по шагам, с понятными примерами.' },
+  { id: 'dry', label: 'Сухо и по-деловому', prompt: 'Отвечай сухо и по-деловому, как справочник: только факты, без эмоций и шуток.' }
+];
+const styleOf = () => STYLES.find(x => x.id === store.get('pipis_style'));
+const styleText = () => styleOf()?.prompt || FREE_STYLE;   // стиль не выбран (старые аккаунты) — как раньше
+function sysBase(){
+  const c = store.get('pipis_sys');
+  if (c && c !== DEFAULT_SYS && c !== BASE_SYS) return c;
+  return styleOf() ? BASE_SYS : DEFAULT_SYS;
+}
+function fillStyleSelect(id, legacy){
+  const sel = $(id); sel.innerHTML = '';
+  if (legacy) sel.append(new Option('Как раньше: дерзко и без фильтров', ''));
+  for (const x of STYLES) sel.append(new Option(x.label, x.id));
+}
 const NO_LATEX = 'НИКОГДА не используй LaTeX и знаки доллара ($) для оформления математических формул и примеров. Пиши все примеры, цифры и действия простым понятным текстом (например: 4 + 8 * 5 = 44).';
 const FILE_RULE = 'Если пользователь просит создать файл (код, скрипт, текст, json, csv, html, конфиг и т.п.), отдай полное содержимое одним блоком кода и укажи имя файла после языка через двоеточие, например: ```python:main.py. Приложение само покажет кнопку «Скачать». Для обычных примеров кода это имя не нужно.';
 const safetySettings = [
@@ -542,7 +589,7 @@ const MAX_DOC_CHARS = 150000;
 // ---------- Аккаунты: всё пользовательское живёт под ключами с логином ----------
 let USER = null;   // логин вошедшего пользователя (нижний регистр); null — никто не вошёл
 const USERS_KEY = 'pipis_users', SESSION_KEY = 'pipis_session';
-const PER_USER = new Set(['pipis_key', 'pipis_profile', 'pipis_sys', 'pipis_max', 'pipis_base', 'pipis_model', 'pipis_facts', 'pipis_about', 'pipis_theme', CHATS_KEY, 'pipis_search', 'pipis_font']);
+const PER_USER = new Set(['pipis_key', 'pipis_profile', 'pipis_sys', 'pipis_max', 'pipis_base', 'pipis_model', 'pipis_facts', 'pipis_about', 'pipis_theme', CHATS_KEY, 'pipis_search', 'pipis_font', 'pipis_style']);
 // ключ пользователя; без входа пользовательские ключи недоступны вообще (null)
 const nk = k => !PER_USER.has(k) ? k : USER ? 'pipis_u.' + encodeURIComponent(USER) + '.' + k : null;
 const store = {
@@ -567,24 +614,51 @@ function snapshotJSON(){
   }
   return json;
 }
+let quiet = false;   // пока идёт boot(), служебные записи не считаются правками пользователя
+const HINT_KEY = 'pipis_last_user';
+const modKey = l => 'pipis_mod.' + encodeURIComponent(l);   // когда локальные данные менялись в последний раз
+const getMod = () => Number(localStorage.getItem(modKey(USER))) || 0;
 function pushCloud(){
   if (!USER || !cloudReady || !window.FB || !FB.auth.currentUser) return Promise.resolve();
-  const ref = FB.api.doc(FB.db, 'users', FB.auth.currentUser.uid);
-  const data = snapshotJSON();   // снимок берём сразу, чтобы выход не потерял последние изменения
-  pushChain = pushChain.then(() => FB.api.setDoc(ref, { data, updated: Date.now() })).catch(e => console.warn('Синхронизация не удалась', e));
+  const login = USER, ref = FB.api.doc(FB.db, 'users', FB.auth.currentUser.uid);
+  const data = snapshotJSON(), stamp = Date.now();   // снимок берём сразу, чтобы выход не потерял последние изменения
+  pushChain = pushChain
+    .then(() => FB.api.setDoc(ref, { data, updated: stamp }))
+    .then(() => { try { localStorage.setItem(modKey(login), String(stamp)) } catch {} })
+    .catch(e => console.warn('Синхронизация не удалась', e));
   return pushChain;
 }
 function scheduleSync(){
-  if (!USER) return;
+  if (!USER || quiet) return;
+  try { localStorage.setItem(modKey(USER), String(Date.now())) } catch {}
   clearTimeout(syncT);
   syncT = setTimeout(() => { syncT = null; pushCloud() }, 1500);
 }
-async function pullCloud(){   // true, если в облаке уже есть данные аккаунта
+async function fetchCloud(){   // данные аккаунта из облака или null
   const snap = await FB.api.getDoc(FB.api.doc(FB.db, 'users', FB.auth.currentUser.uid));
-  if (!snap.exists()) return false;
-  const obj = JSON.parse(snap.data().data || '{}');
+  return snap.exists() ? snap.data() : null;
+}
+function applyCloud(d){
+  const obj = JSON.parse(d.data || '{}');
   for (const [k, v] of Object.entries(obj)) if (PER_USER.has(k) && k !== 'pipis_key') localStorage.setItem(nk(k), v);
-  return true;
+  try { localStorage.setItem(modKey(USER), String(d.updated || 0)) } catch {}
+}
+// чат уже открыт из локальных данных; здесь сверяемся с облаком в фоне
+async function reconcile(){
+  if (!window.FB || !FB.auth.currentUser || !USER) return;
+  const s = session;
+  try {
+    const d = await fetchCloud();
+    if (s !== session) return;
+    const mod = getMod();
+    if (d && (d.updated || 0) > mod) {   // в облаке свежее (например, писали с другого устройства)
+      if (busy) { setTimeout(reconcile, 3000); return }
+      applyCloud(d); cloudReady = true; boot();
+    } else {
+      cloudReady = true;
+      if (!d || mod > (d.updated || 0)) await pushCloud();
+    }
+  } catch (e) { console.warn('Облако недоступно, работаю локально', e) }
 }
 const rawGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } };
 const rawSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true } catch { return false } };
@@ -1050,7 +1124,7 @@ document.addEventListener('keydown', e => {
 
 // ---------- Настройки и темы ----------
 function applyTheme(t){
-  if (!THEMES[t]) t = 'mint';
+  if (!THEMES[t]) t = 'purple';
   document.documentElement.dataset.theme = t;
   document.querySelector('meta[name="theme-color"]').content = THEMES[t];
   document.querySelectorAll('.theme').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === t)));
@@ -1062,12 +1136,14 @@ function openSettings(){
   closeDrawer();
   $('key').value = store.get('pipis_key');
   $('uname').value = userName();
-  $('sys').value = store.get('pipis_sys') || DEFAULT_SYS;
+  $('sys').value = sysBase();
+  $('styleSel').value = store.get('pipis_style') || '';
+  $('howKey').open = !store.get('pipis_key');
   $('max').value = store.get('pipis_max', DEFAULT_MAX);
   $('fontSel').value = store.get('pipis_font') || 'sys'; openFontBox();
   $('base').value = store.get('pipis_base') || DEFAULT_BASE;
   updateMemCount();
-  applyTheme(store.get('pipis_theme', 'mint'));
+  applyTheme(store.get('pipis_theme', 'purple'));
   $('dlg').showModal();
 }
 $('settings').onclick = openSettings;
@@ -1075,7 +1151,8 @@ $('dlgForm').onsubmit = e => {
   if (e.submitter?.value !== 'ok') return;
   store.set('pipis_key', $('key').value.trim());
   store.set('pipis_profile', JSON.stringify({ name: $('uname').value.trim() }));
-  store.set('pipis_sys', $('sys').value.trim());
+  { const t = $('sys').value.trim(); store.set('pipis_sys', (t === DEFAULT_SYS || t === BASE_SYS) ? '' : t) }
+  store.set('pipis_style', $('styleSel').value);
   store.set('pipis_max', $('max').value.trim() || DEFAULT_MAX);
   const base = $('base').value.trim().replace(/\/+$/, '');
   store.set('pipis_base', base === DEFAULT_BASE ? '' : base);
@@ -1236,11 +1313,11 @@ function buildBody(model, thinking, c, tools = searchOn()){
   };
   // у Gemini 3 по умолчанию «среднее» мышление, это главный тормоз — ставим low
   if (thinking && model.startsWith('gemini-3')) body.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
-  let sys = (store.get('pipis_sys') || DEFAULT_SYS) + '\n\n' + FREE_STYLE;
+  let sys = sysBase() + '\n\n' + styleText();
   const name = userName();
   if (name) sys += '\n\nПользователя зовут ' + name + '.';
   if (facts.length) sys += '\n\nПамять о пользователе (учитывай всегда, в любом чате, но не пересказывай без нужды):\n' + facts.map(f => '- ' + f.text).join('\n');
-  sys += '\n\n' + FILE_RULE + '\n\n' + NO_LATEX;
+  sys += '\n\n' + IDENTITY + '\n\n' + FILE_RULE + '\n\n' + NO_LATEX;
   sys += '\n\nСегодня ' + new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) + '.';
   if (tools) {
     body.tools = [{ google_search: {} }];   // Grounding with Google Search
@@ -1510,6 +1587,7 @@ function setAuthMode(m){
   authMode = m;
   document.querySelectorAll('.auth-tab').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
   $('aConfirmBox').hidden = m !== 'register';
+  $('aStyleBox').hidden = m !== 'register';
   $('authSubmit').textContent = m === 'register' ? 'Создать аккаунт' : 'Войти';
   $('aPass').autocomplete = m === 'register' ? 'new-password' : 'current-password';
   $('authErr').textContent = '';
@@ -1550,8 +1628,9 @@ function resetUserState(){
   for (const id of ['key', 'uname', 'sys', 'max', 'base', 'memInput']) $(id).value = '';
 }
 function boot(){
+  quiet = true;
   resetUserState();
-  applyTheme(store.get('pipis_theme', 'mint'));
+  applyTheme(store.get('pipis_theme', 'purple'));
   loadFacts();
   load();
   drawProfile();
@@ -1563,9 +1642,10 @@ function boot(){
   renderList();
   fitViewport();
   autoGrow();
+  quiet = false;
   if (!store.get('pipis_key')) setTimeout(() => { if (USER) openSettings() }, 300);
 }
-let freshNext = null;   // {name} — задаётся при регистрации или переносе старого аккаунта
+let freshNext = null;   // {name, style} — задаётся при регистрации или переносе старого аккаунта
 async function enterUser(login){
   session++;
   netAbort.abort(); netAbort = new AbortController();
@@ -1574,11 +1654,17 @@ async function enterUser(login){
   cloudReady = false;
   const fresh = freshNext; freshNext = null;
   try {
-    const hadCloud = await pullCloud();   // облако главнее: подтягиваем чаты, факты и настройки
-    if (!hadCloud && fresh && hasLegacy() && confirm('На этом устройстве есть чаты и настройки, сохранённые до появления аккаунтов. Перенести их в аккаунт «' + login + '»?')) await migrateLegacy();
+    const d = await fetchCloud();   // облако главнее: подтягиваем чаты, факты и настройки
+    const hadCloud = !!d;
+    if (d) applyCloud(d);
+    else {
+      if (fresh && hasLegacy() && confirm('На этом устройстве есть чаты и настройки, сохранённые до появления аккаунтов. Перенести их в аккаунт «' + login + '»?')) await migrateLegacy();
+      if (fresh?.style) store.set('pipis_style', fresh.style);
+    }
     cloudReady = true;
     if (!hadCloud) await pushCloud();   // первый вход в облако: переносим то, что уже есть на устройстве
   } catch (e) { console.warn('Облако недоступно, работаю локально', e) }
+  try { localStorage.setItem(HINT_KEY, login) } catch {}
   if (!getProfile().name) store.set('pipis_profile', JSON.stringify({ name: fresh?.name || login }));
   boot();
   document.body.classList.remove('locked');
@@ -1596,6 +1682,8 @@ function logout(){
   USER = null;
   resetUserState();
   fontStyle?.remove(); fontStyle = null; applyFont();   // шрифт предыдущего аккаунта не должен остаться на экране входа
+  try { localStorage.removeItem(HINT_KEY) } catch {}
+  document.documentElement.classList.remove('resume');
   if (window.FB) FB.api.signOut(FB.auth).catch(() => {});
   $('aLogin').value = $('aPass').value = $('aPass2').value = '';
   setAuthMode('login');
@@ -1626,7 +1714,7 @@ $('authForm').addEventListener('submit', async e => {
     const email = emailOf(login);
     if (authMode === 'register') {
       if ($('aPass2').value !== pw) { err.textContent = 'Пароли не совпадают.'; return }
-      freshNext = { name: raw };
+      freshNext = { name: raw, style: $('aStyle').value };
       await FB.api.createUserWithEmailAndPassword(FB.auth, email, pw);
     } else {
       try {
@@ -1648,18 +1736,31 @@ $('authForm').addEventListener('submit', async e => {
 });
 
 // ---------- Старт ----------
+fillStyleSelect('aStyle', false); $('aStyle').value = 'detailed';
+fillStyleSelect('styleSel', true);
 (async function start(){
-  let last = 'mint'; try { last = localStorage.getItem('pipis_theme_last') || 'mint' } catch {}
+  let last = 'purple'; try { last = localStorage.getItem('pipis_theme_last') || 'purple' } catch {}
   applyTheme(last);   // до входа: только тема экрана входа
   fitViewport();
   setAuthMode('login');
+  let hint = null; try { hint = localStorage.getItem(HINT_KEY) } catch {}
+  if (hint) {   // уже входили: открываем чат сразу из локальных данных, без экрана входа
+    session++; USER = hint;
+    boot();
+    document.body.classList.remove('locked');
+  }
   await fbReady;
-  if (!window.FB) { $('authErr').textContent = 'Нет связи с сервером входа. Проверь интернет и перезапусти приложение.'; return }
-  // Firebase сам помнит вход между запусками: при старте сразу открываем аккаунт
+  if (!window.FB) {
+    document.documentElement.classList.remove('resume');
+    if (!USER) $('authErr').textContent = 'Нет связи с сервером входа. Проверь интернет и перезапусти приложение.';
+    return;
+  }
+  // Firebase сам помнит вход между запусками
   FB.api.onAuthStateChanged(FB.auth, u => {
-    if (!u) { if (USER) logout(); return }
+    if (!u) { if (USER) logout(); else document.documentElement.classList.remove('resume'); return }
     const login = loginOf(u.email);
-    if (USER !== login) enterUser(login);
+    if (USER === login) reconcile();
+    else enterUser(login);
   });
 })();
 
