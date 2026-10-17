@@ -1,4 +1,4 @@
-Name: Build Pipis AI APK
+name: Build Pipis AI APK
 
 on:
   push:
