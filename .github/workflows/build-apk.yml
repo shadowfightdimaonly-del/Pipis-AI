@@ -45,9 +45,20 @@ jobs:
       - name: Prepare www (works with flat or www/ layout)
         run: |
           mkdir -p www
-          for f in index.html style.css script.js; do
+          for f in index.html style.css script.js pipis-enhancements.js; do
             if [ -f "$f" ]; then cp "$f" www/; fi
           done
+          if [ -f www/index.html ] && [ -f www/pipis-enhancements.js ]; then
+            python3 - <<'PY'
+            from pathlib import Path
+            p=Path('www/index.html')
+            s=p.read_text(encoding='utf-8')
+            tag='<script src="pipis-enhancements.js"></script>'
+            if tag not in s:
+                s=s.replace('</body>',tag+'\n</body>',1)
+                p.write_text(s,encoding='utf-8')
+            PY
+          fi
           ls -la www
 
       - name: Generate Android project (once, in CI)
