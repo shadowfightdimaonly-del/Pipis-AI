@@ -480,6 +480,24 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
   }, 1500);
 })();
 </script>
+<script type="module">
+// Firebase: подключаем SDK и отдаём его обычному скрипту через window.FB
+try {
+  const { initializeApp } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js');
+  const A = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
+  const F = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+  const app = initializeApp({
+    apiKey: "AIzaSyA35S-y_5jfDTH9hc1XbWAQvpDDp261mXI",
+    authDomain: "pipis-ai.firebaseapp.com",
+    projectId: "pipis-ai",
+    storageBucket: "pipis-ai.firebasestorage.app",
+    messagingSenderId: "274947476061",
+    appId: "1:274947476061:web:84055a51b2cf518479bb4"
+  });
+  window.FB = { auth: A.getAuth(app), db: F.getFirestore(app), api: { ...A, ...F } };
+} catch (e) { console.error('Firebase не загрузился', e); window.FB = null }
+window.dispatchEvent(new Event('fbready'));
+</script>
 <script>
 'use strict';
 window.PIPIS_READY = true;   // сигнал для index.html: скрипт дошёл до этой строки
@@ -529,8 +547,45 @@ const PER_USER = new Set(['pipis_key', 'pipis_profile', 'pipis_sys', 'pipis_max'
 const nk = k => !PER_USER.has(k) ? k : USER ? 'pipis_u.' + encodeURIComponent(USER) + '.' + k : null;
 const store = {
   get: (k, d = '') => { try { const n = nk(k); return n ? (localStorage.getItem(n) ?? d) : d } catch { return d } },
-  set: (k, v) => { try { const n = nk(k); if (n) localStorage.setItem(n, v) } catch {} }
+  set: (k, v) => { try { const n = nk(k); if (n) { localStorage.setItem(n, v); if (k !== 'pipis_key') scheduleSync() } } catch {} }
 };
+// ---------- Облако (Firebase): аккаунт и данные в Firestore; ключ Gemini остаётся только на устройстве ----------
+let syncT = null, cloudReady = false, pushChain = Promise.resolve();
+// логин → email для Firebase Auth: hex-кодирование всегда даёт допустимый адрес и однозначно обратимо
+const toHex = s => [...new TextEncoder().encode(s)].map(b => b.toString(16).padStart(2, '0')).join('');
+const emailOf = login => toHex(login) + '@pipis.app';
+const loginOf = email => new TextDecoder().decode(new Uint8Array(email.split('@')[0].match(/../g).map(h => parseInt(h, 16))));
+const SYNC_MAX = 900000;   // документ Firestore не больше ~1 МБ
+function snapshotJSON(){
+  const out = {};
+  for (const k of PER_USER) { if (k === 'pipis_key') continue; const v = store.get(k, null); if (v) out[k] = v }
+  let json = JSON.stringify(out);
+  if (json.length > SYNC_MAX && out[CHATS_KEY]) {   // слишком много: в облако уходят самые свежие чаты
+    const d = JSON.parse(out[CHATS_KEY]);
+    d.chats.sort((a, b) => b.ts - a.ts);
+    while (d.chats.length > 1 && json.length > SYNC_MAX) { d.chats.pop(); out[CHATS_KEY] = JSON.stringify(d); json = JSON.stringify(out) }
+  }
+  return json;
+}
+function pushCloud(){
+  if (!USER || !cloudReady || !window.FB || !FB.auth.currentUser) return Promise.resolve();
+  const ref = FB.api.doc(FB.db, 'users', FB.auth.currentUser.uid);
+  const data = snapshotJSON();   // снимок берём сразу, чтобы выход не потерял последние изменения
+  pushChain = pushChain.then(() => FB.api.setDoc(ref, { data, updated: Date.now() })).catch(e => console.warn('Синхронизация не удалась', e));
+  return pushChain;
+}
+function scheduleSync(){
+  if (!USER) return;
+  clearTimeout(syncT);
+  syncT = setTimeout(() => { syncT = null; pushCloud() }, 1500);
+}
+async function pullCloud(){   // true, если в облаке уже есть данные аккаунта
+  const snap = await FB.api.getDoc(FB.api.doc(FB.db, 'users', FB.auth.currentUser.uid));
+  if (!snap.exists()) return false;
+  const obj = JSON.parse(snap.data().data || '{}');
+  for (const [k, v] of Object.entries(obj)) if (PER_USER.has(k) && k !== 'pipis_key') localStorage.setItem(nk(k), v);
+  return true;
+}
 const rawGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } };
 const rawSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true } catch { return false } };
 let session = 0;                         // растёт при каждом входе/выходе: устаревшие ответы сети отбрасываются
@@ -642,6 +697,7 @@ function newChat(){
 }
 function save(){
   if (!USER) return;
+  scheduleSync();
   // base64 фото и видео в localStorage не кладём; текстовые файлы и id картинок — кладём
   let list = chats.filter(c => c.messages.length).map(c => ({
     id: c.id, title: c.title, ts: c.ts,
@@ -1509,16 +1565,21 @@ function boot(){
   autoGrow();
   if (!store.get('pipis_key')) setTimeout(() => { if (USER) openSettings() }, 300);
 }
-async function enterUser(login, fresh){
-  const users = rawGet(USERS_KEY, {});
+let freshNext = null;   // {name} — задаётся при регистрации или переносе старого аккаунта
+async function enterUser(login){
   session++;
   netAbort.abort(); netAbort = new AbortController();
   idb.reset();
   USER = login;
-  rawSet(SESSION_KEY, login);
-  if (fresh && hasLegacy() && confirm('На этом устройстве есть чаты и настройки, сохранённые до появления аккаунтов. Перенести их в аккаунт «' + login + '»?')) await migrateLegacy();
-  const shown = (users[login] && users[login].name) || login;
-  if (!getProfile().name) store.set('pipis_profile', JSON.stringify({ name: shown }));
+  cloudReady = false;
+  const fresh = freshNext; freshNext = null;
+  try {
+    const hadCloud = await pullCloud();   // облако главнее: подтягиваем чаты, факты и настройки
+    if (!hadCloud && fresh && hasLegacy() && confirm('На этом устройстве есть чаты и настройки, сохранённые до появления аккаунтов. Перенести их в аккаунт «' + login + '»?')) await migrateLegacy();
+    cloudReady = true;
+    if (!hadCloud) await pushCloud();   // первый вход в облако: переносим то, что уже есть на устройстве
+  } catch (e) { console.warn('Облако недоступно, работаю локально', e) }
+  if (!getProfile().name) store.set('pipis_profile', JSON.stringify({ name: fresh?.name || login }));
   boot();
   document.body.classList.remove('locked');
 }
@@ -1526,13 +1587,16 @@ function logout(){
   closeDrawer(); toggleModelMenu(false);
   for (const d of [$('dlg'), $('dlgMem')]) if (d.open) d.close();
   closeLightbox();
+  if (syncT) { clearTimeout(syncT); syncT = null }
+  pushCloud();   // последнее сохранение перед выходом
+  cloudReady = false;
   netAbort.abort(); netAbort = new AbortController();   // обрываем запросы, которые ещё идут
   session++;
   idb.reset();
   USER = null;
   resetUserState();
   fontStyle?.remove(); fontStyle = null; applyFont();   // шрифт предыдущего аккаунта не должен остаться на экране входа
-  rawSet(SESSION_KEY, null);
+  if (window.FB) FB.api.signOut(FB.auth).catch(() => {});
   $('aLogin').value = $('aPass').value = $('aPass2').value = '';
   setAuthMode('login');
   document.body.classList.add('locked');
@@ -1540,6 +1604,15 @@ function logout(){
 }
 $('logout').onclick = logout;
 
+const fbReady = new Promise(r => { if ('FB' in window) r(); else window.addEventListener('fbready', () => r(), { once: true }) });
+const AUTH_ERR = {
+  'auth/invalid-credential': 'Неверный логин или пароль.',
+  'auth/invalid-login-credentials': 'Неверный логин или пароль.',
+  'auth/email-already-in-use': 'Такой логин уже занят.',
+  'auth/weak-password': 'Пароль слишком простой.',
+  'auth/network-request-failed': 'Нет связи. Проверь интернет.',
+  'auth/too-many-requests': 'Слишком много попыток. Подожди немного.'
+};
 $('authForm').addEventListener('submit', async e => {
   e.preventDefault();
   const err = $('authErr'), btn = $('authSubmit'); err.textContent = '';
@@ -1547,33 +1620,47 @@ $('authForm').addEventListener('submit', async e => {
   if (!/^[\p{L}\p{N}_.-]{3,32}$/u.test(login)) { err.textContent = 'Логин: 3–32 символа (буквы, цифры, _ . -).'; return }
   if (login === '__proto__') { err.textContent = 'Этот логин зарезервирован.'; return }
   if (pw.length < 6) { err.textContent = 'Пароль должен быть не короче 6 символов.'; return }
-  const users = rawGet(USERS_KEY, {});
+  if (!window.FB) { err.textContent = 'Нет связи с сервером входа. Проверь интернет.'; return }
   btn.disabled = true;
   try {
+    const email = emailOf(login);
     if (authMode === 'register') {
       if ($('aPass2').value !== pw) { err.textContent = 'Пароли не совпадают.'; return }
-      if (hasOwn(users, login)) { err.textContent = 'Такой логин уже занят.'; return }
-      const salt = randSalt();
-      users[login] = { name: raw, salt, hash: await hashPw(pw, salt) };
-      if (!rawSet(USERS_KEY, users)) { err.textContent = 'Не удалось сохранить аккаунт: хранилище недоступно или переполнено.'; return }
-      await enterUser(login, true);
+      freshNext = { name: raw };
+      await FB.api.createUserWithEmailAndPassword(FB.auth, email, pw);
     } else {
-      const u = hasOwn(users, login) ? users[login] : null;
-      if (!u || (await hashPw(pw, u.salt)) !== u.hash) { err.textContent = 'Неверный логин или пароль.'; return }
-      await enterUser(login, false);
+      try {
+        await FB.api.signInWithEmailAndPassword(FB.auth, email, pw);
+      } catch (ex) {
+        // аккаунт, созданный до облака: пароль проверяем по локальному хешу и переносим аккаунт в Firebase тем же паролем
+        const users = rawGet(USERS_KEY, {}), u = hasOwn(users, login) ? users[login] : null;
+        if (ex.code !== 'auth/invalid-credential' || !u || (await hashPw(pw, u.salt)) !== u.hash) throw ex;
+        freshNext = { name: u.name || raw };
+        try { await FB.api.createUserWithEmailAndPassword(FB.auth, email, pw) }
+        catch (ex2) { throw ex2.code === 'auth/email-already-in-use' ? { code: 'auth/invalid-credential' } : ex2 }
+      }
     }
     $('aPass').value = $('aPass2').value = '';
+  } catch (ex) {
+    freshNext = null;
+    err.textContent = AUTH_ERR[ex.code] || 'Ошибка входа: ' + (ex.code || ex.message);
   } finally { btn.disabled = false }
 });
 
 // ---------- Старт ----------
-(function start(){
+(async function start(){
   let last = 'mint'; try { last = localStorage.getItem('pipis_theme_last') || 'mint' } catch {}
   applyTheme(last);   // до входа: только тема экрана входа
   fitViewport();
-  const s = rawGet(SESSION_KEY, null), users = rawGet(USERS_KEY, {});
-  if (typeof s === 'string' && hasOwn(users, s)) enterUser(s, false);
-  else { setAuthMode(Object.keys(users).length ? 'login' : 'register') }
+  setAuthMode('login');
+  await fbReady;
+  if (!window.FB) { $('authErr').textContent = 'Нет связи с сервером входа. Проверь интернет и перезапусти приложение.'; return }
+  // Firebase сам помнит вход между запусками: при старте сразу открываем аккаунт
+  FB.api.onAuthStateChanged(FB.auth, u => {
+    if (!u) { if (USER) logout(); return }
+    const login = loginOf(u.email);
+    if (USER !== login) enterUser(login);
+  });
 })();
 
 </script>
