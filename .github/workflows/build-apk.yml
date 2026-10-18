@@ -75,6 +75,14 @@ jobs:
         run: |
           if [ ! -d android ]; then npx cap add android; fi
 
+      - name: Allow microphone in Android manifest (voice input)
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          for p in RECORD_AUDIO MODIFY_AUDIO_SETTINGS; do
+            grep -q "android.permission.$p" "$M" || sed -i "s#<application#<uses-permission android:name=\"android.permission.$p\" />\n    <application#" "$M"
+          done
+          grep -n "uses-permission" "$M"
+
       - name: Generate app icons
         run: npx -y @capacitor/assets generate --android --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000'
 
