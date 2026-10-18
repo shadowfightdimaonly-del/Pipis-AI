@@ -83,6 +83,15 @@ jobs:
           done
           grep -n "uses-permission" "$M"
 
+      - name: Render Pipis-AI app icon
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin
+          rsvg-convert -w 1024 -h 1024 assets/pipis-icon.svg -o assets/icon-only.png
+          rsvg-convert -w 1024 -h 1024 assets/pipis-icon-foreground.svg -o assets/icon-foreground.png
+          rsvg-convert -w 1024 -h 1024 assets/pipis-icon-background.svg -o assets/icon-background.png
+          file assets/icon-only.png assets/icon-foreground.png assets/icon-background.png
+
       - name: Generate app icons
         run: npx -y @capacitor/assets generate --android --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000'
 
