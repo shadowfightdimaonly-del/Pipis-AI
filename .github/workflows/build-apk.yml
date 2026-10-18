@@ -46,43 +46,56 @@ jobs:
         run: |
           mkdir -p www
           for f in index.html style.css script.js pipis-enhancements.js; do
-            if [ -f "$f" ]; then cp "$f" www/; fi
+            if [ -f "$f" ] && [ ! -f "www/$f" ]; then cp "$f" www/; fi
           done
           ls -la www
+
+      - name: Check JS syntax (broken index.html will not reach the APK)
+        run: |
+          node - <<'JS'
+          const fs = require('fs'), cp = require('child_process'), os = require('os'), path = require('path');
+          const file = fs.existsSync('www/index.html') ? 'www/index.html' : 'index.html';
+          const html = fs.readFileSync(file, 'utf8');
+          const re = /<script([^>]*)>([\s\S]*?)<\/script>/g;
+          const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'chk-'));
+          let m, n = 0, bad = 0;
+          while ((m = re.exec(html))) {
+            if (/\bsrc=/.test(m[1]) || !m[2].trim()) continue;
+            const f = path.join(tmp, 's' + (n++) + (/type="module"/.test(m[1]) ? '.mjs' : '.js'));
+            fs.writeFileSync(f, m[2]);
+            const r = cp.spawnSync(process.execPath, ['--check', f], { encoding: 'utf8' });
+            if (r.status !== 0) { bad++; console.error('::error::Синтаксическая ошибка в скрипте #' + n + ' файла ' + file + '\n' + r.stderr); }
+          }
+          console.log('Проверено скриптов: ' + n + ' (' + file + ')');
+          if (!n) { console.error('::error::В ' + file + ' не найдено ни одного скрипта'); process.exit(1); }
+          if (bad) process.exit(1);
+          JS
 
       - name: Generate Android project (once, in CI)
         run: |
           if [ ! -d android ]; then npx cap add android; fi
 
-      - name: Install Pipis AI launcher icon
-        run: |
-          RES="android/app/src/main/res"
-          mkdir -p "$RES/drawable-nodpi" "$RES/mipmap-anydpi-v26" "$RES/mipmap-nodpi"
-          cp assets/icon-background.png "$RES/drawable-nodpi/icon_background.png"
-          cp assets/icon-foreground.png "$RES/drawable-nodpi/icon_foreground.png"
-          cp assets/icon-only.png "$RES/mipmap-nodpi/ic_launcher.png"
-          cp assets/icon-only.png "$RES/mipmap-nodpi/ic_launcher_round.png"
-          printf '%s\n' \
-            '<?xml version="1.0" encoding="utf-8"?>' \
-            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
-            '    <background android:drawable="@drawable/icon_background" />' \
-            '    <foreground android:drawable="@drawable/icon_foreground" />' \
-            '</adaptive-icon>' \
-            > "$RES/mipmap-anydpi-v26/ic_launcher.xml"
-          cp "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
-          echo "Иконка Pipis AI установлена"
+      - name: Generate app icons
+        run: npx -y @capacitor/assets generate --android --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000'
 
       - name: Auto-increment versionCode & versionName
         run: |
           python3 - <<'PY'
           import re
           from pathlib import Path
+          
+          # Находим build.gradle внутри android/app
           gradle_path = Path('android/app/build.gradle')
           if gradle_path.exists():
               content = gradle_path.read_text(encoding='utf-8')
+              
+              # Ставим versionCode = номер запуска на GitHub (например, 12, 13, 14...)
               run_number = "${{ github.run_number }}"
               content = re.sub(r'versionCode\s+\d+', f'versionCode {run_number}', content)
+              
+              # Ставим versionName = 1.0.НОМЕР_РАНА
               content = re.sub(r'versionName\s+"[^"]+"', f'versionName "1.0.{run_number}"', content)
+              
               gradle_path.write_text(content, encoding='utf-8')
               print(f"Обновили версию в Gradle! Новая версия: 1.0.{run_number} (code: {run_number})")
           PY
