@@ -54,24 +54,35 @@ jobs:
         run: |
           if [ ! -d android ]; then npx cap add android; fi
 
+      - name: Install Pipis AI launcher icon
+        run: |
+          RES="android/app/src/main/res"
+          mkdir -p "$RES/drawable-nodpi" "$RES/mipmap-anydpi-v26" "$RES/mipmap-nodpi"
+          cp assets/icon-background.png "$RES/drawable-nodpi/icon_background.png"
+          cp assets/icon-foreground.png "$RES/drawable-nodpi/icon_foreground.png"
+          cp assets/icon-only.png "$RES/mipmap-nodpi/ic_launcher.png"
+          cp assets/icon-only.png "$RES/mipmap-nodpi/ic_launcher_round.png"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
+            '    <background android:drawable="@drawable/icon_background" />' \
+            '    <foreground android:drawable="@drawable/icon_foreground" />' \
+            '</adaptive-icon>' \
+            > "$RES/mipmap-anydpi-v26/ic_launcher.xml"
+          cp "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
+          echo "Иконка Pipis AI установлена"
+
       - name: Auto-increment versionCode & versionName
         run: |
           python3 - <<'PY'
           import re
           from pathlib import Path
-          
-          # Находим build.gradle внутри android/app
           gradle_path = Path('android/app/build.gradle')
           if gradle_path.exists():
               content = gradle_path.read_text(encoding='utf-8')
-              
-              # Ставим versionCode = номер запуска на GitHub (например, 12, 13, 14...)
               run_number = "${{ github.run_number }}"
               content = re.sub(r'versionCode\s+\d+', f'versionCode {run_number}', content)
-              
-              # Ставим versionName = 1.0.НОМЕР_РАНА
               content = re.sub(r'versionName\s+"[^"]+"', f'versionName "1.0.{run_number}"', content)
-              
               gradle_path.write_text(content, encoding='utf-8')
               print(f"Обновили версию в Gradle! Новая версия: 1.0.{run_number} (code: {run_number})")
           PY
