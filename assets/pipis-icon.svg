@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#241238"/><stop offset="1" stop-color="#0b0618"/></radialGradient>
+  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+<g filter="url(#glow)"><rect x="62" y="62" width="900" height="900" rx="190" fill="none" stroke="#a34dff" stroke-width="44"/></g>
+<rect x="82" y="82" width="860" height="860" rx="172" fill="none" stroke="#7030be" stroke-width="5"/>
+<rect x="278" y="262" width="468" height="444" rx="120" fill="#f8f4ff"/>
+<path d="M430 670l-40 90 130-60z" fill="#f8f4ff"/>
+<path d="M418 582V341h125c80 0 125 45 125 105s-45 105-125 105h-45v31zM473 505h59c43 0 64-19 64-59s-21-59-64-59h-59z" fill="#a34dff"/>
+<g fill="none" stroke="#cd91ff" stroke-width="12" stroke-linecap="round"><path d="M720 690l75 60-75 70"/></g>
+<g fill="#f8f4ff" stroke="#a34dff" stroke-width="10"><circle cx="720" cy="690" r="20"/><circle cx="795" cy="750" r="20"/><circle cx="720" cy="820" r="20"/></g>
+</svg>
