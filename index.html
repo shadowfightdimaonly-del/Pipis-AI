@@ -128,6 +128,13 @@ header{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-a
 #send{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 4px 14px rgba(var(--rgb),.35);transition:transform .15s,opacity .2s}
 #send:active{transform:scale(.92)}
 #send:disabled{opacity:.35;box-shadow:none;cursor:default;transform:none}
+#send[hidden],#mic[hidden]{display:none}
+#mic{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 4px 14px rgba(var(--rgb),.35)}
+#mic:disabled{opacity:.5}
+#mic.rec{background:#dc2626;animation:recpulse 1.1s ease-in-out infinite}
+@keyframes recpulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.6)}50%{box-shadow:0 0 0 10px rgba(220,38,38,0)}}
+.stats{font-size:13px;color:var(--mute);line-height:1.7;margin:8px 0 0}
+.stats b{color:var(--ink);font-weight:600}
 #pending{display:flex;flex-wrap:wrap;gap:6px;padding:4px 6px 0}
 #pending:empty{display:none}
 .chip{font-size:13px;background:rgba(var(--rgb),.12);border:1px solid var(--line);border-radius:10px;padding:3px 4px 3px 10px;
@@ -322,7 +329,7 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
     <button id="menu" class="hicon" type="button" aria-label="Открыть список чатов">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
-    <h1 class="brand">Pipis AI <span style="font-size:11px;opacity:.6;-webkit-text-fill-color:initial;color:#7fa89a">b6</span></h1>
+    <h1 class="brand">Pipis AI <span style="font-size:11px;opacity:.6;-webkit-text-fill-color:initial;color:#7fa89a">b7</span></h1>
     <button id="newChat" class="btn" type="button">Новый чат</button>
     <button id="settings" class="hicon" type="button" aria-label="Настройки">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -358,6 +365,9 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
         <textarea id="input" rows="1" placeholder="Спроси что-нибудь…" aria-label="Сообщение"></textarea>
         <button id="send" class="icon" type="submit" aria-label="Отправить" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+        <button id="mic" class="icon" type="button" aria-label="Голосовой ввод" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
         </button>
       </div>
     </form>
@@ -412,6 +422,11 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
 
     <label>Память Pipis AI</label>
     <button type="button" id="openMem" class="linkbtn">Управлять памятью (0)</button>
+
+    <details class="howkey" id="statsBox">
+      <summary>Статистика использования</summary>
+      <div id="statsBody" class="stats"></div>
+    </details>
 
     <label for="base">Custom API Proxy URL (опционально)</label>
     <input id="base" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://generativelanguage.googleapis.com">
@@ -609,7 +624,7 @@ const MAX_DOC_CHARS = 150000;
 // ---------- Аккаунты: всё пользовательское живёт под ключами с логином ----------
 let USER = null;   // логин вошедшего пользователя (нижний регистр); null — никто не вошёл
 const USERS_KEY = 'pipis_users', SESSION_KEY = 'pipis_session';
-const PER_USER = new Set(['pipis_key', 'pipis_profile', 'pipis_sys', 'pipis_max', 'pipis_base', 'pipis_model', 'pipis_facts', 'pipis_about', 'pipis_theme', CHATS_KEY, 'pipis_search', 'pipis_font', 'pipis_style']);
+const PER_USER = new Set(['pipis_key', 'pipis_profile', 'pipis_sys', 'pipis_max', 'pipis_base', 'pipis_model', 'pipis_facts', 'pipis_about', 'pipis_theme', CHATS_KEY, 'pipis_search', 'pipis_font', 'pipis_style', 'pipis_stats']);
 // ключ пользователя; без входа пользовательские ключи недоступны вообще (null)
 const nk = k => !PER_USER.has(k) ? k : USER ? 'pipis_u.' + encodeURIComponent(USER) + '.' + k : null;
 const store = {
@@ -780,7 +795,7 @@ const idb = {
 let chats = [];
 let activeId = null;
 let pending = [];   // вложения {name, mime, data | text, kind, preview}
-let busy = false;
+let busy = false, rec = null, transcribing = false;
 const active = () => chats.find(c => c.id === activeId);
 
 function newChat(){
@@ -970,6 +985,7 @@ function addCopyAll(bot, text){   // кнопка «Копировать отв�
   const row = document.createElement('div'); row.className = 'bot-tools';
   const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Копировать ответ';
   b.onclick = async () => { const ok = await copyText(text); b.textContent = ok ? 'Скопировано!' : 'Не вышло'; setTimeout(() => b.textContent = 'Копировать ответ', 1800) };
+  if (canSpeak) { const sp = document.createElement('button'); sp.type = 'button'; sp.textContent = 'Озвучить'; sp.onclick = () => speak(text, sp); row.append(sp) }
   row.append(b); bot.append(row);
 }
 function addBot(){
@@ -1157,6 +1173,7 @@ function renderList(){
 }
 $('chatSearch').addEventListener('input', renderList);
 function switchedChat(){
+  stopSpeak();
   pending = []; drawPending(); input.value = ''; autoGrow(); stick = true;
   renderChat(); renderList(); save();
 }
@@ -1201,6 +1218,7 @@ function openSettings(){
   $('sys').value = sysBase();
   $('styleSel').value = store.get('pipis_style') || '';
   $('howKey').open = !store.get('pipis_key');
+  drawStats();
   $('max').value = store.get('pipis_max', DEFAULT_MAX);
   $('fontSel').value = store.get('pipis_font') || 'sys'; openFontBox();
   $('base').value = store.get('pipis_base') || DEFAULT_BASE;
@@ -1336,6 +1354,7 @@ async function addFiles(list){
 function autoGrow(){
   input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px';
   send.disabled = busy || (!input.value.trim() && !pending.length);
+  drawMic();
 }
 $('attach').onclick = () => $('file').click();            // accept="image/*": на телефоне предложит галерею или камеру
 $('attachDoc').onclick = () => $('fileDoc').click();
@@ -1433,7 +1452,7 @@ async function generate(key, c){
   let lastErr;
   for (const model of modelChain()) {
     try {
-      return await tryModel(model, key, c);
+      return { ...(await tryModel(model, key, c)), model };
     } catch (err) {
       lastErr = err;
       // ключ/запрос неверны — смена модели не поможет; снятая с поддержки модель — идём к следующей
@@ -1480,7 +1499,8 @@ async function runChat(c, key, bot){
     if (full) w.push(full);
   };
   try {
-    const { res, tools: usedSearch } = await generate(key, c);
+    const { res, tools: usedSearch, model: usedModel } = await generate(key, c);
+    bumpStat('chat', usedModel, usedSearch);
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = '';
     for (;;) {
@@ -1552,7 +1572,7 @@ async function runImage(c, text, key, bot){
   for (const m of IMG_MODELS) {
     try {
       urls = await genImage(m, en, key);
-      if (urls.length) break;
+      if (urls.length) { bumpStat('image', m.id); break }
     } catch (err) {
       if (err.name === 'AbortError') throw err;
       lastErr = err;
@@ -1620,10 +1640,146 @@ async function regenerate(){
   } catch (err) {
     if (sess !== session) return;
     c.messages.push(removed); save();
-    if (bot.isConnected) { bot.classList.add('err'); bot.querySelector('.content').textContent = 'Ошибка: ' + err.message + ' Прежний ответ сохранён в истории чата.' }
+    if (bot.isConnected) { bot.classList.add('err'); bot.querySelector('.content').textContent = errText(err) + ' Прежний ответ сохранён в истории чата.' }
   } finally {
     if (sess === session) { busy = false; autoGrow(); refreshTools() }
   }
+}
+
+// ---------- Статистика и понятные ошибки ----------
+function errText(err){
+  const m = err?.message || String(err);
+  if (err?.status === 429 || /quota|exceeded your current/i.test(m)) return 'Лимит запросов на твоём ключе исчерпан. Дневные лимиты сбрасываются раз в сутки; проверить квоту можно на ai.dev/rate-limit.';
+  return 'Ошибка: ' + m;
+}
+const readStats = () => { try { return JSON.parse(store.get('pipis_stats', '{}') || '{}') } catch { return {} } };
+function bumpStat(kind, model, search){
+  try {
+    const st = readStats(); st.days = st.days || {}; st.models = st.models || {};
+    const d = st.days[new Date().toLocaleDateString('sv')] ||= {};
+    d[kind] = (d[kind] || 0) + 1;
+    if (model && MODELS.some(x => x.id === model)) st.models[model] = (st.models[model] || 0) + 1;
+    if (search) st.search = (st.search || 0) + 1;
+    const keys = Object.keys(st.days).sort(); while (keys.length > 60) delete st.days[keys.shift()];
+    store.set('pipis_stats', JSON.stringify(st));
+  } catch {}
+}
+function drawStats(){
+  const st = readStats(), days = st.days || {};
+  const n = v => (v.chat || 0) + (v.image || 0) + (v.voice || 0);
+  const since = from => Object.entries(days).filter(([k]) => k >= from).reduce((a, [, v]) => a + n(v), 0);
+  const today = new Date().toLocaleDateString('sv'), week = new Date(Date.now() - 6 * 864e5).toLocaleDateString('sv');
+  const all = Object.values(days), sum = k => all.reduce((a, v) => a + (v[k] || 0), 0);
+  const rows = [
+    ['Сегодня', since(today)], ['За 7 дней', since(week)], ['За 60 дней', since('')],
+    ['Сообщений', sum('chat')], ['Картинок', sum('image')], ['Голосовых', sum('voice')], ['С поиском в интернете', st.search || 0]
+  ];
+  const models = Object.entries(st.models || {}).sort((a, b) => b[1] - a[1]);
+  $('statsBody').innerHTML = rows.map(([k, v]) => k + ': <b>' + v + '</b>').join('<br>')
+    + (models.length ? '<br><br>По моделям:<br>' + models.map(([id, v]) => (MODELS.find(x => x.id === id)?.name || id) + ': <b>' + v + '</b>').join('<br>') : '')
+    + '<br><br>Считает только это приложение. Реальные лимиты ключа смотри на ai.dev/rate-limit.';
+}
+
+// ---------- Голосовой ввод: запись → WAV → расшифровка моделью ----------
+function encodeWav(ch, rate){
+  const n = ch.length, v = new DataView(new ArrayBuffer(44 + n * 2));
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)) };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) { const x = Math.max(-1, Math.min(1, ch[i])); v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true) }
+  return new Uint8Array(v.buffer);
+}
+async function blobToWavB64(blob){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC({ sampleRate: 16000 });
+  try {
+    const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+    const bytes = encodeWav(buf.getChannelData(0), buf.sampleRate);
+    let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  } finally { ctx.close().catch(() => {}) }
+}
+async function transcribe(blob){
+  const data = await blobToWavB64(blob), key = store.get('pipis_key');
+  const body = { contents: [{ role: 'user', parts: [{ inline_data: { mime_type: 'audio/wav', data } }, { text: 'Расшифруй речь дословно, на языке говорящего. Верни только текст расшифровки, без комментариев и кавычек.' }] }], generationConfig: { maxOutputTokens: 2000 } };
+  let lastErr;
+  for (const model of [DEFAULT_MODEL, 'gemini-3.5-flash-lite']) {
+    const b = JSON.parse(JSON.stringify(body)); if (model.startsWith('gemini-3')) b.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+    try {
+      const j = await (await callWithRetry(model, b, key, ':generateContent')).json();
+      bumpStat('voice', model);
+      return (j.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || '').join('').trim();
+    } catch (e) { if (e.name === 'AbortError') throw e; lastErr = e }
+  }
+  throw lastErr;
+}
+function drawMic(){
+  const m = $('mic'); if (!m) return;
+  const ok = !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+  const show = ok && (!!rec || transcribing || (!busy && !input.value.trim() && !pending.length));
+  m.hidden = !show; send.hidden = show;
+  m.classList.toggle('rec', !!rec); m.disabled = transcribing;
+  m.setAttribute('aria-label', rec ? 'Остановить запись' : 'Голосовой ввод');
+}
+async function toggleMic(){
+  if (transcribing) return;
+  if (rec) { stopRec(); return }
+  if (!store.get('pipis_key')) { openSettings(); return }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }) }
+  catch { alert('Нет доступа к микрофону. Разреши его для Pipis AI в настройках телефона.'); return }
+  const mr = new MediaRecorder(stream), chunks = [], sess = session;
+  mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data) };
+  mr.onstop = () => finishRec(stream, chunks, mr.mimeType, sess);
+  rec = { mr, timer: setTimeout(stopRec, 120000) };   // не дольше двух минут
+  mr.start(); input.placeholder = 'Говори… нажми ещё раз, чтобы остановить'; drawMic();
+}
+function stopRec(){ if (!rec) return; clearTimeout(rec.timer); try { rec.mr.stop() } catch {} }
+async function finishRec(stream, chunks, mime, sess){
+  stream.getTracks().forEach(t => t.stop());
+  rec = null;
+  if (sess !== session) { drawMic(); return }   // пока шла запись, вышли из аккаунта
+  transcribing = true; input.placeholder = 'Расшифровываю…'; drawMic();
+  try {
+    const text = await transcribe(new Blob(chunks, { type: mime || 'audio/webm' }));
+    if (sess === session) { if (text) input.value = (input.value ? input.value + ' ' : '') + text; else alert('Речь не распознана. Попробуй ещё раз.') }
+  } catch (e) { if (sess === session && e.name !== 'AbortError') alert('Не удалось расшифровать: ' + errText(e).replace(/^Ошибка: /, '')) }
+  finally { transcribing = false; if (sess === session) { drawSearch(); autoGrow(); input.focus() } }
+}
+$('mic').onclick = toggleMic;
+
+// ---------- Озвучка ответов ----------
+const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+let speaking = null, speakTok = 0;   // speaking — кнопка, чей ответ сейчас читается
+function plainForSpeech(t){
+  return t.replace(/```[\s\S]*?```/g, ' блок кода. ').replace(/`([^`]*)`/g, '$1').replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/https?:\/\/\S+/g, 'ссылка').replace(/[*_#>~|]+/g, '')
+    .replace(/^\s*[-•]\s+/gm, '').replace(/\n{2,}/g, '. ').replace(/\s+/g, ' ').trim();
+}
+function stopSpeak(){
+  if (!canSpeak) return;
+  speakTok++; speechSynthesis.cancel();
+  if (speaking) { speaking.textContent = 'Озвучить'; speaking = null }
+}
+function speak(text, btn){
+  const same = speaking === btn; stopSpeak(); if (same) return;
+  const plain = plainForSpeech(text); if (!plain) return;
+  const parts = []; let cur = '';
+  for (const sn of plain.match(/[^.!?…]+[.!?…]*\s*/g) || [plain]) {   // режем на куски ~220 символов: длинный текст целиком движок может оборвать
+    if (cur && (cur + sn).length > 220) { parts.push(cur); cur = '' }
+    cur += sn;
+  }
+  if (cur) parts.push(cur);
+  const cyr = (plain.match(/[а-яё]/gi) || []).length, lang = cyr > plain.length * 0.3 ? 'ru-RU' : 'en-US';
+  const tok = ++speakTok; speaking = btn; btn.textContent = 'Стоп';
+  const reset = () => { if (tok === speakTok && speaking === btn) { btn.textContent = 'Озвучить'; speaking = null } };
+  parts.forEach((t, i) => {
+    const u = new SpeechSynthesisUtterance(t); u.lang = lang;
+    if (i === parts.length - 1) u.onend = reset;
+    u.onerror = reset;
+    speechSynthesis.speak(u);
+  });
 }
 
 // ---------- Шаблоны промптов ----------
@@ -1685,7 +1841,7 @@ $('form').onsubmit = async e => {
     save(); renderList();
     if (bot.isConnected) {
       bot.classList.add('err');
-      bot.querySelector('.content').textContent = 'Ошибка: ' + err.message;
+      bot.querySelector('.content').textContent = errText(err);
     }
     if (activeId === c.id) { input.value = text; pending = [...files, ...pending]; drawPending() }   // текст и вложения возвращаем, чтобы не перепечатывать
   } finally {
@@ -1812,6 +1968,7 @@ function logout(){
   closeDrawer(); toggleModelMenu(false);
   for (const d of [$('dlg'), $('dlgMem')]) if (d.open) d.close();
   closeLightbox();
+  stopRec(); stopSpeak();
   if (syncT) { clearTimeout(syncT); syncT = null }
   pushCloud();   // последнее сохранение перед выходом
   cloudReady = false;
