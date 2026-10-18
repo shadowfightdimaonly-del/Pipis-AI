@@ -73,6 +73,9 @@ header{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-a
 .code-head{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 12px;font-size:12px;color:var(--mute);background:rgba(var(--rgb),.08)}
 .copy,.dl{background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer;flex:none}
 .copy:active,.dl:active{background:rgba(var(--rgb),.16)}
+.bot-tools{display:flex;justify-content:flex-end;margin-top:8px}
+.bot-tools button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:4px 12px;font:inherit;font-size:12px;cursor:pointer}
+.bot-tools button:active{background:rgba(var(--rgb),.16)}
 .code-head .lang{font-weight:600;color:var(--ink)}
 .code-head .fname{color:var(--light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .code-head .spacer{flex:1}
@@ -945,6 +948,13 @@ function addUser(text, files, still){
   if (text) { const t = document.createElement('div'); t.textContent = text; d.append(t) }
   chatEl.append(d); scrollDown();
 }
+function addCopyAll(bot, text){   // кнопка «Копировать ответ» под ответом Pipis
+  if (!text) return;
+  const row = document.createElement('div'); row.className = 'bot-tools';
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Копировать ответ';
+  b.onclick = async () => { const ok = await copyText(text); b.textContent = ok ? 'Скопировано!' : 'Не вышло'; setTimeout(() => b.textContent = 'Копировать ответ', 1800) };
+  row.append(b); bot.append(row);
+}
 function addBot(){
   clearEmpty();
   const d = document.createElement('div'); d.className = 'msg bot';
@@ -972,6 +982,7 @@ function addBotStatic(m){
     idb.get(id).then(url => { if (url) ph.replaceWith(imgBlock(url, 'pipis-' + id + '.' + extOf(url))); else ph.textContent = 'Изображение недоступно' })
       .catch(() => { ph.textContent = 'Изображение недоступно' });
   }
+  if (m.text) addCopyAll(d, m.text);
   chatEl.append(d);
 }
 const setText = (bot, text) => { bot.querySelector('.content').innerHTML = md(text); scrollDown() };
@@ -1441,6 +1452,7 @@ async function runChat(c, key, bot){
     ? 'Поиск не участвовал: модель отказалась от инструмента поиска. Ответ из её памяти, он может быть неточным.'
     : 'Поиск выполнен, но источников не нашлось. Ответ может быть неточным.';
   if (note && bot.isConnected) { const m = document.createElement('div'); m.className = 'meta'; m.textContent = note; bot.querySelector('.content').append(m) }
+  addCopyAll(bot, full);
   if (chats.includes(c)) { c.messages.push({ role: 'model', text: full, sources, note }); c.ts = Date.now(); save(); renderList() }
   if (!bot.isConnected && activeId === c.id) renderChat();   // пока шла генерация, чат переключали туда-обратно
   else if (finish === 'MAX_TOKENS' && bot.isConnected) {
