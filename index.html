@@ -76,6 +76,21 @@ header{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-a
 .bot-tools{display:flex;justify-content:flex-end;margin-top:8px}
 .bot-tools button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:4px 12px;font:inherit;font-size:12px;cursor:pointer}
 .bot-tools button:active{background:rgba(var(--rgb),.16)}
+.chat-exp{flex:none;width:40px;height:40px;background:none;border:0;color:var(--mute);display:grid;place-items:center;cursor:pointer;border-radius:10px}
+.chat-exp:active{background:rgba(var(--rgb),.16);color:var(--light)}
+.chat-exp svg{width:18px;height:18px}
+.chat-open .ttl,.chat-open .snip{display:block;overflow:hidden;text-overflow:ellipsis}
+.chat-open .snip{font-size:12px;color:var(--mute);margin-top:2px}
+#chatSearch{width:100%;font:inherit;font-size:15px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin:8px 0 4px}
+#chatSearch:focus{border-color:var(--acc);outline:none}
+.tpl{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.tpl[hidden]{display:none}
+.tpl::-webkit-scrollbar{display:none}
+.tpl button{flex:none;background:rgba(var(--rgb),.1);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.tpl button:active{background:rgba(var(--rgb),.25)}
+.user-tools{display:flex;justify-content:flex-end;margin-top:6px}
+.user-tools button{background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:12px;padding:2px 0;cursor:pointer;text-decoration:underline}
+.bot-tools{gap:8px}
 .code-head .lang{font-weight:600;color:var(--ink)}
 .code-head .fname{color:var(--light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .code-head .spacer{flex:1}
@@ -327,6 +342,7 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
   <footer class="composer">
     <form id="form" class="box" autocomplete="off">
       <div id="pending"></div>
+      <div id="tpl" class="tpl" hidden></div>
       <div class="row">
         <button type="button" id="searchBtn" class="icon" aria-pressed="false" title="Поиск в интернете" aria-label="Поиск в интернете">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
@@ -365,6 +381,7 @@ body.locked #app,body.locked #drawer,body.locked #scrim,body.locked #lightbox{di
     <button id="createChat" class="create" type="button">+ Создать чат</button>
     <button id="memBtn" class="soft" type="button" aria-label="Память Pipis AI">Память <span id="memCount">0</span></button>
   </div>
+  <input id="chatSearch" type="search" placeholder="Поиск по чатам" aria-label="Поиск по чатам" autocomplete="off">
   <div id="chatList" class="chat-list"></div>
   <button id="logout" class="soft logout" type="button">Выйти из аккаунта</button>
 </aside>
@@ -1084,27 +1101,61 @@ function renderChat(){
   if (!c || !c.messages.length) { empty(); return }
   c.messages.forEach(m => m.role === 'user' ? addUser(m.text, m.files || [], true) : addBotStatic(m));
   stick = true; chatEl.scrollTop = chatEl.scrollHeight;
+  refreshTools();
 }
 
 // ---------- Боковая панель ----------
 const openDrawer = () => { renderList(); document.body.classList.add('drawer-open'); $('drawer').setAttribute('aria-hidden', 'false') };
-const closeDrawer = () => { document.body.classList.remove('drawer-open'); $('drawer').setAttribute('aria-hidden', 'true') };
+const closeDrawer = () => { $('chatSearch').value = ''; document.body.classList.remove('drawer-open'); $('drawer').setAttribute('aria-hidden', 'true') };
 const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 
+const EXPORT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
+function snippet(text, q){
+  const i = text.toLowerCase().indexOf(q); if (i < 0) return '';
+  const a = Math.max(0, i - 25);
+  return (a ? '…' : '') + text.slice(a, i + q.length + 45).replace(/\s+/g, ' ') + '…';
+}
+function exportChat(c){   // чат целиком в Markdown; картинки в файл не попадают
+  const out = ['# ' + c.title, '', '_Экспорт из Pipis AI, ' + new Date().toLocaleString('ru-RU') + '_', ''];
+  for (const m of c.messages) {
+    out.push('## ' + (m.role === 'user' ? 'Ты' : 'Pipis'), '');
+    const names = [...(m.files || []).map(f => f.name), ...(m.docs || []).map(f => f.name)];
+    if (names.length) out.push('Вложения: ' + names.join(', '), '');
+    if (m.imgs?.length) out.push('[изображений: ' + m.imgs.length + ']', '');
+    if (m.text) out.push(m.text, '');
+    if (m.sources?.length) out.push('Источники:', ...m.sources.map(x => '- ' + (x.t || x.u) + ': ' + x.u), '');
+  }
+  const name = (c.title.replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 40) || 'chat') + '.md';
+  Promise.resolve(downloadText(name, out.join('\n'))).catch(() => alert('Не удалось сохранить файл'));
+}
 function renderList(){
   const list = $('chatList'); list.innerHTML = '';
-  const items = chats.filter(c => c.messages.length).sort((a, b) => b.ts - a.ts);
-  if (!items.length) { list.innerHTML = '<p class="list-empty">Пока пусто. Начни диалог.</p>'; return }
+  const q = $('chatSearch').value.trim().toLowerCase();
+  let items = chats.filter(c => c.messages.length).sort((a, b) => b.ts - a.ts);
+  const snips = new Map();
+  if (q) items = items.filter(c => {
+    if (c.title.toLowerCase().includes(q)) return true;
+    const m = c.messages.find(x => (x.text || '').toLowerCase().includes(q));
+    if (m) { snips.set(c.id, snippet(m.text, q)); return true }
+    return false;
+  });
+  if (!items.length) { list.innerHTML = '<p class="list-empty">' + (q ? 'Ничего не найдено.' : 'Пока пусто. Начни диалог.') + '</p>'; return }
   for (const c of items) {
     const row = document.createElement('div'); row.className = 'chat-item' + (c.id === activeId ? ' active' : '');
-    const open = document.createElement('button'); open.type = 'button'; open.className = 'chat-open'; open.textContent = c.title;
+    const open = document.createElement('button'); open.type = 'button'; open.className = 'chat-open';
+    const ttl = document.createElement('span'); ttl.className = 'ttl'; ttl.textContent = c.title; open.append(ttl);
+    if (snips.get(c.id)) { const sn = document.createElement('span'); sn.className = 'snip'; sn.textContent = snips.get(c.id); open.append(sn) }
     open.onclick = () => openChat(c.id);
+    const exp = document.createElement('button'); exp.type = 'button'; exp.className = 'chat-exp';
+    exp.setAttribute('aria-label', 'Экспорт чата «' + c.title + '» в Markdown'); exp.innerHTML = EXPORT_ICON;
+    exp.onclick = e => { e.stopPropagation(); exportChat(c) };
     const del = document.createElement('button'); del.type = 'button'; del.className = 'chat-del';
     del.setAttribute('aria-label', 'Удалить чат «' + c.title + '»'); del.innerHTML = TRASH;
     del.onclick = e => { e.stopPropagation(); deleteChat(c.id) };
-    row.append(open, del); list.append(row);
+    row.append(open, exp, del); list.append(row);
   }
 }
+$('chatSearch').addEventListener('input', renderList);
 function switchedChat(){
   pending = []; drawPending(); input.value = ''; autoGrow(); stick = true;
   renderChat(); renderList(); save();
@@ -1522,6 +1573,82 @@ async function runImage(c, text, key, bot){
   } else if (activeId === c.id) renderChat();
 }
 
+// ---------- «Изменить» своё сообщение и «Повторить ответ» ----------
+function refreshTools(){
+  chatEl.querySelectorAll('.regen,.user-tools').forEach(n => n.remove());
+  const c = active(); if (!c || busy || !c.messages.length) return;
+  const last = chatEl.lastElementChild; if (!last || !last.classList.contains('msg')) return;
+  const lastMsg = c.messages[c.messages.length - 1];
+  let ub = null;
+  if (last.classList.contains('bot') && !last.classList.contains('err') && lastMsg.role === 'model') {
+    let row = last.querySelector('.bot-tools');
+    if (!row) { row = document.createElement('div'); row.className = 'bot-tools'; last.append(row) }
+    const b = mkBtn('Повторить ответ', 'regen'); b.onclick = regenerate; row.prepend(b);
+    ub = last.previousElementSibling;
+  } else if (last.classList.contains('user') && lastMsg.role === 'user') ub = last;
+  if (ub && ub.classList.contains('user')) {
+    const um = [...c.messages].reverse().find(m => m.role === 'user');
+    if (um?.text) { const row = document.createElement('div'); row.className = 'user-tools'; const e = mkBtn('Изменить'); e.onclick = editLast; row.append(e); ub.append(row) }
+  }
+}
+function editLast(){   // последнее сообщение (и ответ на него) возвращаем в поле ввода
+  if (busy) return;
+  const c = active(); if (!c) return;
+  let i = c.messages.length - 1;
+  if (c.messages[i]?.role === 'model') i--;
+  const m = c.messages[i]; if (!m || m.role !== 'user') return;
+  c.messages.splice(i).forEach(x => (x.imgs || []).forEach(k => idb.del(k).catch(() => {})));
+  pending = (m.docs || []).map(d => ({ name: d.name, mime: 'text/plain', kind: 'text', text: d.text }));
+  drawPending(); input.value = m.text || ''; autoGrow();
+  save(); renderChat(); renderList(); input.focus();
+}
+async function regenerate(){
+  if (busy || !USER) return;
+  const c = active(); if (!c) return;
+  const key = store.get('pipis_key'); if (!key) { openSettings(); return }
+  const li = c.messages.length - 1;
+  if (li < 1 || c.messages[li].role !== 'model' || c.messages[li - 1].role !== 'user') return;
+  const userMsg = c.messages[li - 1], removed = c.messages.pop(), sess = session;
+  chatEl.lastElementChild?.remove();   // старый ответ убираем с экрана, в истории он вернётся при ошибке
+  chatEl.querySelectorAll('.regen,.user-tools').forEach(n => n.remove());
+  busy = true; autoGrow(); stick = true;
+  const bot = addBot();
+  try {
+    if (userMsg.text && isImageRequest(userMsg.text)) await runImage(c, userMsg.text, key, bot);
+    else await runChat(c, key, bot);
+    (removed.imgs || []).forEach(k => idb.del(k).catch(() => {}));
+  } catch (err) {
+    if (sess !== session) return;
+    c.messages.push(removed); save();
+    if (bot.isConnected) { bot.classList.add('err'); bot.querySelector('.content').textContent = 'Ошибка: ' + err.message + ' Прежний ответ сохранён в истории чата.' }
+  } finally {
+    if (sess === session) { busy = false; autoGrow(); refreshTools() }
+  }
+}
+
+// ---------- Шаблоны промптов ----------
+const TEMPLATES = [
+  { l: 'Перевести', t: 'Переведи на английский:\n' },
+  { l: 'Исправить текст', t: 'Исправь ошибки в тексте, ничего не меняя по смыслу:\n' },
+  { l: 'Объясни проще', t: 'Объясни проще, как для новичка.', now: true },
+  { l: 'Кратко', t: 'Сократи ответ до главного.', now: true },
+  { l: 'Продолжи', t: 'Продолжай.', now: true }
+];
+function drawTpl(){ $('tpl').hidden = !(USER && !busy && !input.value && document.activeElement === input) }
+TEMPLATES.forEach(x => {
+  const b = mkBtn(x.l);
+  b.onmousedown = e => e.preventDefault();   // тап по шаблону не должен убирать фокус с поля ввода
+  b.onclick = () => {
+    input.value = x.t; autoGrow();
+    if (x.now && active()?.messages.length && !busy) { $('form').requestSubmit(); return }
+    input.focus(); input.setSelectionRange(input.value.length, input.value.length); drawTpl();
+  };
+  $('tpl').append(b);
+});
+input.addEventListener('focus', drawTpl);
+input.addEventListener('input', drawTpl);
+input.addEventListener('blur', () => setTimeout(drawTpl, 300));
+
 $('form').onsubmit = async e => {
   e.preventDefault();
   const text = input.value.trim();
@@ -1562,7 +1689,7 @@ $('form').onsubmit = async e => {
     }
     if (activeId === c.id) { input.value = text; pending = [...files, ...pending]; drawPending() }   // текст и вложения возвращаем, чтобы не перепечатывать
   } finally {
-    if (sess === session) { busy = false; autoGrow(); input.focus() }
+    if (sess === session) { busy = false; autoGrow(); input.focus(); refreshTools() }
   }
 };
 
