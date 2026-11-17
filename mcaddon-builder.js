@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const norm = s => String(s || '').replace(/\\\\/g, '/').replace(/^\\/+/, '').replace(/\\/+/g, '/');
+  const norm = s => String(s || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/');
   const crcTable = (() => {
     const t = new Uint32Array(256);
     for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
@@ -35,19 +35,19 @@
       const code = block.querySelector('pre code')?.textContent;
       if (!label || code == null) return;
       const path = norm(label);
-      if (/^(BP|BehaviorPack|behavior_pack|behavior-pack|RP|ResourcePack|resource_pack|resource-pack)\\//i.test(path))
+      if (/^(BP|BehaviorPack|behavior_pack|behavior-pack|RP|ResourcePack|resource_pack|resource-pack)\//i.test(path))
         files.push({ name: path, text: code });
     });
     return files;
   }
   function validate(files) {
     const roots = [
-      { re: /^(BP|BehaviorPack|behavior_pack|behavior-pack)\\//i, label: 'Behavior Pack' },
-      { re: /^(RP|ResourcePack|resource_pack|resource-pack)\\//i, label: 'Resource Pack' }
+      { re: /^(BP|BehaviorPack|behavior_pack|behavior-pack)\//i, label: 'Behavior Pack' },
+      { re: /^(RP|ResourcePack|resource_pack|resource-pack)\//i, label: 'Resource Pack' }
     ];
     const found = roots.map(root => {
       const pack = files.filter(f => root.re.test(f.name));
-      const manifest = pack.find(f => /\\/manifest\\.json$/i.test(f.name));
+      const manifest = pack.find(f => /\/manifest\.json$/i.test(f.name));
       if (!pack.length) return { label: root.label, error: 'Не найден' };
       if (!manifest) return { label: root.label, error: 'Нет manifest.json' };
       try {
