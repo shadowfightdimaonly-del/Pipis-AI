@@ -45,7 +45,7 @@ jobs:
       - name: Prepare www (works with flat or www/ layout)
         run: |
           mkdir -p www
-          for f in index.html style.css script.js pipis-enhancements.js; do
+          for f in index.html style.css script.js pipis-enhancements.js mcaddon-builder.js; do
             if [ -f "$f" ] && [ ! -f "www/$f" ]; then cp "$f" www/; fi
           done
           ls -la www
